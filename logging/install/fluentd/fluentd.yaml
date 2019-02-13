@@ -171,6 +171,8 @@ data:
       host elasticsearch-logging
       port 9200
       logstash_format true
+      template_name my_template
+      template_file /etc/fluent/template.d/fluentd-template.json
       <buffer>
         @type file
         path /var/log/fluentd-buffers/kubernetes.system.buffer
