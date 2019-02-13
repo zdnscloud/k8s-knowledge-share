@@ -50,7 +50,7 @@ roleRef:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: fluentd-es-v2.2.1
+  name: fluentd-es-v2.2.0
   namespace: logging 
   labels:
     k8s-app: fluentd-es
@@ -75,7 +75,6 @@ spec:
         scheduler.alpha.kubernetes.io/critical-pod: ''
         seccomp.security.alpha.kubernetes.io/pod: 'docker/default'
     spec:
-      priorityClassName: system-node-critical
       serviceAccountName: fluentd-es
       containers:
       - name: fluentd-es
@@ -139,12 +138,9 @@ data:
       tag kubernetes.*
       read_from_head true
       <parse>
-        @type multi_format
-        <pattern>
-          format json
-          time_key time
-          time_format %Y-%m-%dT%H:%M:%S.%NZ
-        </pattern>
+        @type json
+        time_key time
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
       </parse>
     </source>
 
@@ -167,7 +163,8 @@ data:
       @id elasticsearch
       @type elasticsearch
       @log_level info
-      type_name fluentd
+      type_name _doc 
+      include_tag_key true
       host elasticsearch-logging
       port 9200
       logstash_format true
@@ -196,4 +193,4 @@ metadata:
   labels:
     addonmanager.kubernetes.io/mode: Reconcile
 data:
-  fluentd-template.json: ' { "mappings": { "_doc": { "_source": { "excludes": ["docker", "stream", "kubernetes.labels", "kubernetes.container_image_id", "kubernetes.container_image", "kubernetes.pod_id", "kubernetes.namespace_id", "kubernetes.master_url", "kubernetes.namespace_labels"]}, "properties": { "docker": { "enabled": false }, "stream": { "type": "text", "index": false }, "log": {"index": false, "type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } }, "tag": { "type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } }, "kubernetes": { "properties": { "container_image": { "type": "text", "index": false }, "container_image_id": { "type": "text", "index": false }, "container_name": {"type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } }  }, "host": { "type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } }, "labels": {"enabled": false }, "master_url" : { "type": "text", "index": false }, "namespace_id": { "type": "text", "index": false }, "namespace_labels": { "enabled": false }, "namespace_name": {"type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } }, "pod_id": { "type": "text", "index": false }, "pod_name": { "type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } } } } } } }, "settings": { "index.refresh_interval": "5s", "index.number_of_shards": "5" }, "template": "logstash-*" } '
+  fluentd-template.json: ' { "mappings": { "_doc": { "_source": { "excludes": [ "docker", "stream", "kubernetes.labels", "kubernetes.container_image_id", "kubernetes.container_image", "kubernetes.pod_id", "kubernetes.namespace_id", "kubernetes.master_url", "kubernetes.namespace_labels"]}, "properties": { "docker": { "enabled": false }, "stream": { "type": "text", "index": false }, "log": {"index": false, "type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } }, "tag": { "type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } }, "kubernetes": { "properties": { "container_image": { "type": "text", "index": false }, "container_image_id": { "type": "text", "index": false }, "container_name": {"type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } }  }, "host": { "type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } }, "labels": {"enabled": false }, "master_url" : { "type": "text", "index": false }, "namespace_id": { "type": "text", "index": false }, "namespace_labels": { "enabled": false }, "namespace_name": {"type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } }, "pod_id": { "type": "text", "index": false }, "pod_name": { "type": "text", "norms": false, "index_options": "freqs", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } } } } } } }, "settings": { "index.refresh_interval": "5s", "index.number_of_shards": "5" }, "template": "logstash-*" } '
