@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-volume-config
+data:
+    storageClassMap: |
+        block-devices: 
+            hostDir:  /data/local-storage/block-devices
+            mountDir: /data/local-storage/block-devices

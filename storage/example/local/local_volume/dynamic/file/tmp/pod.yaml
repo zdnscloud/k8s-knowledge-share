@@ -1,0 +1,15 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: mypod3
+spec:
+  containers:
+    - name: myfrontend
+      image: ikubernetes/myapp:v3
+      volumeMounts:
+      - mountPath: "/data"
+        name: mypd
+  volumes:
+    - name: mypd
+      persistentVolumeClaim:
+        claimName: myclaim3

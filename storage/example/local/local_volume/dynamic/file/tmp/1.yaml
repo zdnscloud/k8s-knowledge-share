@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myclaim4
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+  storageClassName: local-volume2
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: mypod4
+spec:
+  containers:
+    - name: myfrontend
+      image: ikubernetes/myapp:v3
+      volumeMounts:
+      - mountPath: "/data"
+        name: mypd
+  volumes:
+    - name: mypd
+      persistentVolumeClaim:
+        claimName: myclaim4

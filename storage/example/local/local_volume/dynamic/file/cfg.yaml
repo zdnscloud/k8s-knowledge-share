@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-volume-dynamic-file-config
+  namespace: default
+data:
+  storageClassMap: |
+    local-volume-dynamic-file:
+       hostDir: /data/local
+       mountDir:  /data/local
+       blockCleanerCommand:
+         - "/scripts/shred.sh"
+         - "2"
+       volumeMode: Filesystem
+       fsType: ext4

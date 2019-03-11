@@ -1,0 +1,22 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: local-pv-static-block
+spec:
+  volumeMode: Block
+  capacity:
+    storage: 1Gi
+  local:
+    path: /dev/mapper/vgapps-lv_test
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-volume-static-block
+  nodeAffinity:                       
+    required:                         
+      nodeSelectorTerms:              
+      - matchExpressions:             
+        - key: kubernetes.io/hostname 
+          operator: In                
+          values:                     
+          - k8s02-02

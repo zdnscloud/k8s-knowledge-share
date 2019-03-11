@@ -1,0 +1,15 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: local-volume-dynamic-file-pod
+spec:
+  containers:
+    - name: client
+      image: ikubernetes/myapp:v3
+      volumeMounts:
+      - mountPath: "/data"
+        name: data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: local-volume-dynamic-file-pvc

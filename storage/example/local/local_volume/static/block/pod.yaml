@@ -1,0 +1,22 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: local-volume-static-block-pod
+  annotations:
+    container.apparmor.security.beta.kubernetes.io/client: unconfined
+spec:
+  containers:
+    - name: client
+      image: centos
+      command: ["/bin/sh", "-c"]
+      args: ["tail -f /dev/null"]
+      securityContext:
+        capabilities:
+          add: ["SYS_ADMIN"]
+      volumeDevices:
+        - name: device
+          devicePath: /dev/xvdd
+  volumes:
+    - name: device
+      persistentVolumeClaim:
+        claimName: local-volume-static-block-pvc

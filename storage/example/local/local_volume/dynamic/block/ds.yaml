@@ -1,0 +1,52 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: local-volume-dynamic-block-provisioner
+spec:
+  template:
+    metadata:
+      labels:
+        app: local-volume-dynamic-block-provisioner
+    spec:
+      containers:
+      - env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: MY_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: VOLUME_CONFIG_NAME
+          value: local-volume-dynamic-block-config
+        image: quay.io/external_storage/local-volume-provisioner:v2.1.0
+        name: local-volume-dynamic-block-provisioner
+        securityContext:
+          privileged: true
+          runAsUser: 0
+          seLinuxOptions:
+            # Trump SELinux contexts of all pods that could write files to local volume - the provisioner must be able to clean their files.
+            level: "s0:c0.c1023"
+        volumeMounts:
+        - mountPath: /data/local-storage
+          name: local-storage
+          mountPropagation: HostToContainer
+        - mountPath: /etc/provisioner/config
+          name: provisioner-config
+          readOnly: true
+        - mountPath: /dev
+          name: dev
+      serviceAccountName: "local-volume-dynamic-block-admin"
+      volumes:
+      - hostPath:
+          path: /data/local-storage
+        name: local-storage
+      - configMap:
+          name: local-volume-dynamic-block-config
+        name: provisioner-config
+      - hostPath:
+          path: /dev
+        name: dev

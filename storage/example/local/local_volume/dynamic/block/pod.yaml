@@ -1,0 +1,23 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: local-volume-dynamic-block-pod
+  annotations:
+    container.apparmor.security.beta.kubernetes.io/client: unconfined
+spec:
+  containers:
+    - name: client
+      image: centos
+      imagePullPolicy: Never
+      command: ["/bin/sh", "-c"]
+      args: ["tail -f /dev/null"]
+      securityContext:
+        capabilities:
+          add: ["SYS_ADMIN"]
+      volumeDevices:
+        - name: device
+          devicePath: /dev/xvde
+  volumes:
+    - name: device
+      persistentVolumeClaim:
+        claimName: local-volume-dynamic-block-pvc

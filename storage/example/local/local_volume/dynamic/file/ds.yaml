@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: local-volume-dynamic-file-provisioner
+  namespace: default
+  labels:
+    app: local-volume-dynamic-file-provisioner
+spec:
+  selector:
+    matchLabels:
+      app: local-volume-dynamic-file-provisioner
+  template:
+    metadata:
+      labels:
+        app: local-volume-dynamic-file-provisioner
+    spec:
+      serviceAccountName: local-volume-dynamic-file-admin
+      containers:
+        - image: "quay.io/external_storage/local-volume-provisioner:v2.1.0"
+          imagePullPolicy: "Always"
+          name: local-volume-dynamic-file-provisioner
+          securityContext:
+            privileged: true
+          env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          volumeMounts:
+            - mountPath: /etc/provisioner/config
+              name: provisioner-config
+              readOnly: true
+            - mountPath:  /data/local
+              name: local-storage
+              mountPropagation: "HostToContainer"
+      volumes:
+        - name: provisioner-config
+          configMap:
+            name: local-volume-dynamic-file-config
+        - name: local-storage
+          hostPath:
+            path: /data/local
