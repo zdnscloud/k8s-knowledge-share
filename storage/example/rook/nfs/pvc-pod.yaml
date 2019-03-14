@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pv-claim-1
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: "example-nfs"
+  resources:
+    requests:
+      storage: 1Gi
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: client
+      image: ikubernetes/myapp:v3
+      volumeMounts:
+      - mountPath: "/data"
+        name: data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: nfs-pv-claim-1
