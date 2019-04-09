@@ -1,1 +1,22 @@
+k8s部署10个常见错误  
+1、镜像问题  ErrImagePull 
+使用kubectl describe pod 查看具体原因  
+a.镜像tag错误  
+b.镜像不存在  
+c.没有权限拉取镜像  
+手动docker pull，如果成功，就是k8s没有拉取镜像的权限，如果失败，检查tag或registry  
 
+2、应用崩溃  CrashLoopBackOff   
+a.使用kubectl describe pod 查看具体原因  
+b.查看当前pod的日志  
+c.使用--previous参数查看之前的日志  
+一般情况下是缺少环境变量或挂载卷
+
+3、缺少配置
+4、pod状态探测失败
+5、资源超限
+6、资源配额
+7、集群资源不足
+8、挂卷失败
+9、验证yaml
+10、容器镜像不更新
