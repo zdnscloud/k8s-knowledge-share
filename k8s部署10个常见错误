@@ -12,11 +12,46 @@ b.查看当前pod的日志
 c.使用--previous参数查看之前的日志  
 一般情况下是缺少环境变量或挂载卷
 
-3、缺少配置
+3、缺少ConfigMap或Secret   
+缺少configmap：RunContainerError  
+缺少secret：ContainerCreating   
+使用kubectl describe pod查看具体原因
+
 4、pod状态探测失败
-5、资源超限
+活跌度失败：k8s删除pod新建一个
+滚动部署会挂起，等待pod状态就绪
+默认检查路径：/healthz
+
+探测失败：
+a.URL是否正确？
+b.探测的太敏感，是否pod启动初始化时间较长
+c.非预期的探测结果
+具体需要查log定位问题
+
+5、CPU/Memory资源超限
+a.要求管理员增加资源
+b.减少pod的使用需求
+c.自己动手丰衣足食（kubectl edit）
+
 6、资源配额
-7、集群资源不足
+管理员可以给namespaces设置配额，例如Pod，Deployments，PersistentVolumes，CPU，Memory等数量。
+kubectl describe deploy/gateway-quota
+kubectl describe replicaset gateway-quota-551394438
+a.为指定的namespaces增加配额
+b.在这个namespaces减少其它的使用资源
+c.自己动手丰衣足食（kubectl edit）
+
+7、集群资源不足  Insufficient 
+添加node以扩展集群
+
 8、挂卷失败
-9、验证yaml
+
+9、验证yaml中的错误
+a.使用python -c 'import yaml,sys;yaml.safe_load(sys.stdin)' < test-application.deployment.yaml验证yaml
+b.kubectl create -f test-application.deploy.yaml --dry-run --validate=true验证k8s API对像，此为服务端验证，非客户端
+
+
 10、容器镜像不更新
+a.使用latest（不要这样做）
+b.设置ImagePullPolicy: Always
+c.使用唯一tag（推荐这种，对于版本管理很重要）
