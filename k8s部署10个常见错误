@@ -6,17 +6,143 @@ b.镜像不存在
 c.没有权限拉取镜像  
 手动docker pull，如果成功，就是k8s没有拉取镜像的权限，如果失败，检查tag或registry  
 
+$ kubectl get pods
+NAME                    READY     STATUS             RESTARTS   AGE
+fail-1036623984-hxoas   0/1       ImagePullBackOff   0          2m
+
+$ kubectl describe pod fail-1036623984-hxoas
+
+Events:
+  FirstSeen    LastSeen    Count   From                        SubObjectPath       Type        Reason      Message
+  ---------    --------    -----   ----                        -------------       --------    ------      -------
+  5m        5m      1   {default-scheduler }                            Normal      Scheduled   Successfully assigned fail-1036623984-hxoas to gke-nrhk-1-default-pool-a101b974-wfp7
+  5m        2m      5   {kubelet gke-nrhk-1-default-pool-a101b974-wfp7} spec.containers{fail}   Normal      Pulling     pulling image "rosskukulinski/dne:v1.0.0"
+  5m        2m      5   {kubelet gke-nrhk-1-default-pool-a101b974-wfp7} spec.containers{fail}   Warning     Failed      Failed to pull image "rosskukulinski/dne:v1.0.0": Error: image rosskukulinski/dne not found
+  5m        2m      5   {kubelet gke-nrhk-1-default-pool-a101b974-wfp7}             Warning     FailedSync  Error syncing pod, skipping: failed to "StartContainer" for "fail" with ErrImagePull: "Error: image rosskukulinski/dne not found"
+
+  5m    11s 19  {kubelet gke-nrhk-1-default-pool-a101b974-wfp7} spec.containers{fail}   Normal  BackOff     Back-off pulling image "rosskukulinski/dne:v1.0.0"
+  5m    11s 19  {kubelet gke-nrhk-1-default-pool-a101b974-wfp7}             Warning FailedSync  Error syncing pod, skipping: failed to "StartContainer" for "fail" with ImagePullBackOff: "Back-off pulling image \"rosskukulinski/dne:v1.0.0\""
 2、应用崩溃  CrashLoopBackOff   
 a.使用kubectl describe pod 查看具体原因  
 b.查看当前pod的日志  
 c.使用--previous参数查看之前的日志  
 一般情况下是缺少环境变量或挂载卷
 
+$ kubectl get pods
+NAME                       READY     STATUS             RESTARTS   AGE
+crasher-2443551393-vuehs   0/1       CrashLoopBackOff   2          54s
+
+$ kubectl describe pod crasher-2443551393-vuehs
+Name:        crasher-2443551393-vuehs
+Namespace:    fail
+Node:        gke-nrhk-1-default-pool-a101b974-wfp7/10.142.0.2
+Start Time:    Fri, 10 Feb 2017 14:20:29 -0500
+Labels:        pod-template-hash=2443551393
+        run=crasher
+Status:        Running
+IP:        10.0.0.74
+Controllers:    ReplicaSet/crasher-2443551393
+Containers:
+  crasher:
+    Container ID:    docker://51c940ab32016e6d6b5ed28075357661fef3282cb3569117b0f815a199d01c60
+    Image:        rosskukulinski/crashing-app
+    Image ID:        docker://sha256:cf7452191b34d7797a07403d47a1ccf5254741d4bb356577b8a5de40864653a5
+    Port:        
+    State:        Terminated
+      Reason:        Error
+      Exit Code:    1
+      Started:        Fri, 10 Feb 2017 14:22:24 -0500
+      Finished:        Fri, 10 Feb 2017 14:22:26 -0500
+    Last State:        Terminated
+      Reason:        Error
+      Exit Code:    1
+      Started:        Fri, 10 Feb 2017 14:21:39 -0500
+      Finished:        Fri, 10 Feb 2017 14:21:40 -0500
+    Ready:        False
+    Restart Count:    4
+...
+
+$ kubectl logs crasher-2443551393-vuehs
+
+$ kubectl logs crasher-2443551393-vuehs --previous
+
 3、缺少ConfigMap或Secret   
 缺少configmap：RunContainerError  
 缺少secret：ContainerCreating   
 使用kubectl describe pod查看具体原因
 
+# configmap-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: configmap-pod
+spec:
+  containers:
+    - name: test-container
+      image: gcr.io/google_containers/busybox
+      command: [ "/bin/sh", "-c", "env" ]
+      env:
+        - name: SPECIAL_LEVEL_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: special-config
+              key: special.how
+
+$ kubectl get pods
+NAME            READY     STATUS              RESTARTS   AGE
+configmap-pod   0/1       RunContainerError   0          3s
+
+$ kubectl describe pod configmap-pod
+[...]
+Events:
+  FirstSeen    LastSeen    Count   From                        SubObjectPath           Type        Reason      Message
+  ---------    --------    -----   ----                        -------------           --------    ------      -------
+  20s        20s     1   {default-scheduler }                                Normal      Scheduled   Successfully assigned configmap-pod to gke-ctm-1-sysdig2-35e99c16-tgfm
+  19s        2s      3   {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}   spec.containers{test-container} Normal      Pulling     pulling image "gcr.io/google_containers/busybox"
+  18s        2s      3   {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}   spec.containers{test-container} Normal      Pulled      Successfully pulled image "gcr.io/google_containers/busybox"
+  18s        2s      3   {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}                   Warning     FailedSync  Error syncing pod, skipping: failed to "StartContainer" for "test-container" with RunContainerError: "GenerateRunContainerOptions: configmaps \"special-config\" not found"
+           
+
+# missing-secret.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-pod
+spec:
+  containers:
+    - name: test-container
+      image: gcr.io/google_containers/busybox
+      command: [ "/bin/sh", "-c", "env" ]
+      volumeMounts:
+        - mountPath: /etc/secret/
+          name: myothersecret
+  restartPolicy: Never
+  volumes:
+    - name: myothersecret
+      secret:
+        secretName: myothersecret
+        
+$ kubectl get pods
+NAME            READY     STATUS              RESTARTS   AGE
+secret-pod   0/1       ContainerCreating   0          4h
+
+$ kubectl describe pod secret-pod
+Name:        secret-pod
+Namespace:    fail
+Node:        gke-ctm-1-sysdig2-35e99c16-tgfm/10.128.0.2
+Start Time:    Sat, 11 Feb 2017 14:07:13 -0500
+Labels:        
+Status:        Pending
+IP:        
+Controllers:    
+
+[...]
+
+Events:
+  FirstSeen    LastSeen    Count   From                        SubObjectPath   Type        Reason      Message
+  ---------    --------    -----   ----                        -------------   --------    ------      -------
+  18s        18s     1   {default-scheduler }                        Normal      Scheduled   Successfully assigned secret-pod to gke-ctm-1-sysdig2-35e99c16-tgfm
+  18s        2s      6   {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}           Warning     FailedMount MountVolume.SetUp failed for volume "kubernetes.io/secret/337281e7-f065-11e6-bd01-42010af0012c-myothersecret" (spec.Name: "myothersecret") pod "337281e7-f065-11e6-bd01-42010af0012c" (UID: "337281e7-f065-11e6-bd01-42010af0012c") with: secrets "myothersecret" not found
 4、pod状态探测失败
 活跌度失败：k8s删除pod新建一个
 滚动部署会挂起，等待pod状态就绪
@@ -28,11 +154,125 @@ b.探测的太敏感，是否pod启动初始化时间较长
 c.非预期的探测结果
 具体需要查log定位问题
 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-pod
+spec:
+  containers:
+    - name: test-container
+      image: rosskukulinski/leaking-app
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 3
+        periodSeconds: 3
+      readinessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 3
+        periodSeconds: 3
+        
+$ kubectl get pods
+NAME           READY     STATUS    RESTARTS   AGE
+liveness-pod   0/1       Running   4          2m
+
+$ kubectl describe pod liveness-pod
+Name:        liveness-pod
+Namespace:    fail
+Node:        gke-ctm-1-sysdig2-35e99c16-tgfm/10.128.0.2
+Start Time:    Sat, 11 Feb 2017 14:32:36 -0500
+Labels:        
+Status:        Running
+IP:        10.108.88.40
+Controllers:    
+Containers:
+  test-container:
+    Container ID:    docker://8fa6f99e6fda6e56221683249bae322ed864d686965dc44acffda6f7cf186c7b
+    Image:        rosskukulinski/leaking-app
+    Image ID:        docker://sha256:7bba8c34dad4ea155420f856cd8de37ba9026048bd81f3a25d222fd1d53da8b7
+    Port:        
+    State:        Running
+      Started:        Sat, 11 Feb 2017 14:40:34 -0500
+    Last State:        Terminated
+      Reason:        Error
+      Exit Code:    137
+      Started:        Sat, 11 Feb 2017 14:37:10 -0500
+      Finished:        Sat, 11 Feb 2017 14:37:45 -0500
+[...]
+Events:
+  FirstSeen    LastSeen    Count   From                        SubObjectPath           Type        Reason      Message
+  ---------    --------    -----   ----                        -------------           --------    ------      -------
+  8m        8m      1   {default-scheduler }                                Normal      Scheduled   Successfully assigned liveness-pod to gke-ctm-1-sysdig2-35e99c16-tgfm
+  8m        8m      1   {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}   spec.containers{test-container} Normal      Created     Created container with docker id 0fb5f1a56ea0; Security:[seccomp=unconfined]
+  8m        8m      1   {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}   spec.containers{test-container} Normal      Started     Started container with docker id 0fb5f1a56ea0
+  7m        7m      1   {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}   spec.containers{test-container} Normal      Created     Created container with docker id 3f2392e9ead9; Security:[seccomp=unconfined]
+  7m        7m      1   {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}   spec.containers{test-container} Normal      Killing     Killing container with docker id 0fb5f1a56ea0: pod "liveness-pod_fail(d75469d8-f090-11e6-bd01-42010af0012c)" container "test-container" is unhealthy, it will be killed and re-created.
+  8m    16s 10  {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}   spec.containers{test-container} Warning Unhealthy   Liveness probe failed: Get http://10.108.88.40:8080/healthz: dial tcp 10.108.88.40:8080: getsockopt: connection refused
+  8m    1s  85  {kubelet gke-ctm-1-sysdig2-35e99c16-tgfm}   spec.containers{test-container} Warning Unhealthy   Readiness probe failed: Get http://10.108.88.40:8080/healthz: dial tcp 10.108.88.40:8080: getsockopt: connection refused
+
+
 5、CPU/Memory资源超限
 a.要求管理员增加资源
 b.减少pod的使用需求
 c.自己动手丰衣足食（kubectl edit）
 
+# gateway.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gateway
+spec:
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+        - name: test-container
+          image: nginx
+          resources:
+            requests:
+              memory: 5Gi
+              
+$ kubectl get pods
+No resources found.
+
+$ kubectl describe deployment/gateway
+Name:            gateway
+Namespace:        fail
+CreationTimestamp:    Sat, 11 Feb 2017 15:03:34 -0500
+Labels:            app=gateway
+Selector:        app=gateway
+Replicas:        0 updated | 1 total | 0 available | 1 unavailable
+StrategyType:        RollingUpdate
+MinReadySeconds:    0
+RollingUpdateStrategy:    0 max unavailable, 1 max surge
+OldReplicaSets:        
+NewReplicaSet:        gateway-764140025 (0/1 replicas created)
+Events:
+  FirstSeen    LastSeen    Count   From                SubObjectPath   Type        Reason          Message
+  ---------    --------    -----   ----                -------------   --------    ------          -------
+  4m        4m      1   {deployment-controller }            Normal      ScalingReplicaSet   Scaled up replica set gateway-764140025 to 1
+  
+$ kubectl describe rs/gateway-764140025
+Name:        gateway-764140025
+Namespace:    fail
+Image(s):    nginx
+Selector:    app=gateway,pod-template-hash=764140025
+Labels:        app=gateway
+        pod-template-hash=764140025
+Replicas:    0 current / 1 desired
+Pods Status:    0 Running / 0 Waiting / 0 Succeeded / 0 Failed
+No volumes.
+Events:
+  FirstSeen    LastSeen    Count   From                SubObjectPath   Type        Reason      Message
+  ---------    --------    -----   ----                -------------   --------    ------      -------
+  6m        28s     15  {replicaset-controller }            Warning     FailedCreate    Error creating: pods "gateway-764140025-" is forbidden: [maximum memory usage per Pod is 100Mi, but request is 5368709120., maximum memory usage per Container is 100Mi, but request is 5Gi.]
+  
 6、资源配额
 管理员可以给namespaces设置配额，例如Pod，Deployments，PersistentVolumes，CPU，Memory等数量。
 kubectl describe deploy/gateway-quota
@@ -41,14 +281,198 @@ a.为指定的namespaces增加配额
 b.在这个namespaces减少其它的使用资源
 c.自己动手丰衣足食（kubectl edit）
 
+# test-quota.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gateway-quota
+spec:
+  template:
+    spec:
+      containers:
+        - name: test-container
+          image: nginx
+
+$ kubectl get pods
+NAME                            READY     STATUS    RESTARTS   AGE
+gateway-quota-551394438-pix5d   1/1       Running   0          16s
+
+$ kubectl get pods
+NAME                            READY     STATUS    RESTARTS   AGE
+gateway-quota-551394438-pix5d   1/1       Running   0          9m
+
+$ kubectl describe deploy/gateway-quota
+Name:            gateway-quota
+Namespace:        fail
+CreationTimestamp:    Sat, 11 Feb 2017 16:33:16 -0500
+Labels:            app=gateway
+Selector:        app=gateway
+Replicas:        1 updated | 3 total | 1 available | 2 unavailable
+StrategyType:        RollingUpdate
+MinReadySeconds:    0
+RollingUpdateStrategy:    1 max unavailable, 1 max surge
+OldReplicaSets:        
+NewReplicaSet:        gateway-quota-551394438 (1/3 replicas created)
+Events:
+  FirstSeen    LastSeen    Count   From                SubObjectPath   Type        Reason          Message
+  ---------    --------    -----   ----                -------------   --------    ------          -------
+  9m        9m      1   {deployment-controller }            Normal      ScalingReplicaSet   Scaled up replica set gateway-quota-551394438 to 1
+  5m        5m      1   {deployment-controller }            Normal      ScalingReplicaSet   Scaled up replica set gateway-quota-551394438 to 3
+  
+ kubectl describe replicaset gateway-quota-551394438
+Name:        gateway-quota-551394438
+Namespace:    fail
+Image(s):    nginx
+Selector:    app=gateway,pod-template-hash=551394438
+Labels:        app=gateway
+        pod-template-hash=551394438
+Replicas:    1 current / 3 desired
+Pods Status:    1 Running / 0 Waiting / 0 Succeeded / 0 Failed
+No volumes.
+Events:
+  FirstSeen    LastSeen    Count   From                SubObjectPath   Type        Reason          Message
+  ---------    --------    -----   ----                -------------   --------    ------          -------
+  11m        11m     1   {replicaset-controller }            Normal      SuccessfulCreate    Created pod: gateway-quota-551394438-pix5d
+  11m        30s     33  {replicaset-controller }            Warning     FailedCreate        Error creating: pods "gateway-quota-551394438-" is forbidden: exceeded quota: compute-resources, requested: pods=1, used: pods=1, limited: pods=1
 7、集群资源不足  Insufficient 
 添加node以扩展集群
 
+# cpu-scale.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cpu-scale
+spec:
+  template:
+    metadata:
+      labels:
+        app: cpu-scale
+    spec:
+      containers:
+        - name: test-container
+          image: nginx
+          resources:
+            requests:
+              cpu: 1
+
+$ kubectl get pods
+NAME                        READY     STATUS    RESTARTS   AGE
+cpu-scale-908056305-xstti   1/1       Running   0          5m
+
+$ kubectl scale deploy/cpu-scale --replicas=2
+deployment "cpu-scale" scaled
+$ kubectl get pods
+NAME                        READY     STATUS    RESTARTS   AGE
+cpu-scale-908056305-phb4j   0/1       Pending   0          4m
+cpu-scale-908056305-xstti   1/1       Running   0          5m
+
+$ kubectl describe pod cpu-scale-908056305-phb4j
+Name:        cpu-scale-908056305-phb4j
+Namespace:    fail
+Node:        gke-ctm-1-sysdig2-35e99c16-qwds/10.128.0.4
+Start Time:    Sun, 12 Feb 2017 08:57:51 -0500
+Labels:        app=cpu-scale
+        pod-template-hash=908056305
+Status:        Pending
+IP:        
+Controllers:    ReplicaSet/cpu-scale-908056305
+[...]
+Events:
+  FirstSeen    LastSeen    Count   From            SubObjectPath   Type        Reason          Message
+  ---------    --------    -----   ----            -------------   --------    ------          -------
+  3m        3m      1   {default-scheduler }            Warning     FailedScheduling    pod (cpu-scale-908056305-phb4j) failed to fit in any node
+fit failure on node (gke-ctm-1-sysdig2-35e99c16-wx0s): Insufficient cpu
+fit failure on node (gke-ctm-1-sysdig2-35e99c16-tgfm): Insufficient cpu
+fit failure on node (gke-ctm-1-sysdig2-35e99c16-qwds): Insufficient cpu
+
+
 8、挂卷失败
+
+# volume-test.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: volume-test
+spec:
+  template:
+    metadata:
+      labels:
+        app: volume-test
+    spec:
+      containers:
+        - name: test-container
+          image: nginx
+          volumeMounts:
+          - mountPath: /test
+            name: test-volume
+      volumes:
+      - name: test-volume
+        # This GCE PD must already exist (oops!)
+        gcePersistentDisk:
+          pdName: my-data-disk
+          fsType: ext4
+          
+kubectl get pods
+NAME                           READY     STATUS              RESTARTS   AGE
+volume-test-3922807804-33nux   0/1       ContainerCreating   0          3m
+
+$ kubectl describe pod volume-test-3922807804-33nux
+Name:        volume-test-3922807804-33nux
+Namespace:    fail
+Node:        gke-ctm-1-sysdig2-35e99c16-qwds/10.128.0.4
+Start Time:    Sun, 12 Feb 2017 09:24:50 -0500
+Labels:        app=volume-test
+        pod-template-hash=3922807804
+Status:        Pending
+IP:        
+Controllers:    ReplicaSet/volume-test-3922807804
+[...]
+Volumes:
+  test-volume:
+    Type:    GCEPersistentDisk (a Persistent Disk resource in Google Compute Engine)
+    PDName:    my-data-disk
+    FSType:    ext4
+    Partition:    0
+    ReadOnly:    false
+[...]
+Events:
+  FirstSeen    LastSeen    Count   From                        SubObjectPath   Type        Reason      Message
+  ---------    --------    -----   ----                        -------------   --------    ------      -------
+  4m        4m      1   {default-scheduler }                        Normal      Scheduled   Successfully assigned volume-test-3922807804-33nux to gke-ctm-1-sysdig2-35e99c16-qwds
+  1m        1m      1   {kubelet gke-ctm-1-sysdig2-35e99c16-qwds}           Warning     FailedMount Unable to mount volumes for pod "volume-test-3922807804-33nux_fail(e2180d94-f12e-11e6-bd01-42010af0012c)": timeout expired waiting for volumes to attach/mount for pod "volume-test-3922807804-33nux"/"fail". list of unattached/unmounted volumes=[test-volume]
+  1m        1m      1   {kubelet gke-ctm-1-sysdig2-35e99c16-qwds}           Warning     FailedSync  Error syncing pod, skipping: timeout expired waiting for volumes to attach/mount for pod "volume-test-3922807804-33nux"/"fail". list of unattached/unmounted volumes=[test-volume]
+  3m        50s     3   {controller-manager }                       Warning     FailedMount Failed to attach volume "test-volume" on node "gke-ctm-1-sysdig2-35e99c16-qwds" with: GCE persistent disk not found: diskName="my-data-disk" zone="us-central1-a"
+
 
 9、验证yaml中的错误
 a.使用python -c 'import yaml,sys;yaml.safe_load(sys.stdin)' < test-application.deployment.yaml验证yaml
 b.kubectl create -f test-application.deploy.yaml --dry-run --validate=true验证k8s API对像，此为服务端验证，非客户端
+
+$ kubectl create -f test-application.deploy.yaml
+error: error validating "test-application.deploy.yaml": error validating data: found invalid field resources for v1.PodSpec; if you choose to ignore these errors, turn validation off with --validate=false
+
+# test-application.deploy.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: test-app
+spec:
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+      resources:
+        limits:
+          cpu: 100m
+          memory: 200Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
+
 
 
 10、容器镜像不更新
