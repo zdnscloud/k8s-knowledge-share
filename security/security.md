@@ -53,7 +53,7 @@
 1. Security Context
   * SecurityContext in container spec
   * PodSecurityContext in pod spec
-  * privileged (Processes in container with root uid, only available in container security context)
+  * privileged (access all the devices in host and set system configuration, only available in container security context)
   * runAsUser/runAsGroup
   * runAsNonRoot
   * allowPrivilegeEscalation (allowed to run cmd like su, ping to promote the privilege) 
