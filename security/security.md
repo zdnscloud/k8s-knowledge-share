@@ -58,6 +58,7 @@
   * runAsNonRoot
   * allowPrivilegeEscalation (allowed to run cmd like su, ping to promote the privilege) 
   * supplementalGroups, fsGroups are used to allow user to access shared storage when its uid isn't allowed
+  * docker is support user namespace, but k8s doesn't use it yet
 
 2. PSP (Pod Security Policy)
   * enable PodSecurityPolicy in admission controller
