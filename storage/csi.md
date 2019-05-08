@@ -7,7 +7,7 @@
 
 * Mount 等价于&quot;将该磁盘格式化后，挂载在 Volume 的宿主机目录上&quot;
 ## Volume生命周期
-    ![""](volume-runtime.png)
+![""](volume-runtime.png)
 
 # CSI设计方案
 
@@ -26,7 +26,7 @@ CSI有三种RPC：
 
 # CSI架构
 
-    ![""](csi-framework.png)
+ ![""](csi-framework.png)
 
 ## External Components
 
