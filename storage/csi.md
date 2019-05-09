@@ -328,9 +328,7 @@ func makeVolumeName(prefix, pvcUID string, volumeNameUUIDLength int) (string, er
 }
          _, err = p.csiClient.DeleteVolume(ctx, &req)
 ```
-> 注：
->   可以部署多个provisioner，但只能有一个provisioner领导者。可以在启动时指定--enable-leader-election开启选举。
->   --volume-name-prefix参数可以指定PV的名称前缀（默认pvc-&lt;uuid&gt;）
+> 注：可以部署多个provisioner，但只能有一个provisioner领导者。可以在启动时指定--enable-leader-election开启选举。--volume-name-prefix参数可以指定PV的名称前缀（默认pvc-&lt;uuid&gt;）
 
 # Volume-Manager
 
@@ -450,9 +448,7 @@ external-attacher/pkg/controller/trivial\_handler.go
 func (h *trivialHandler) SyncNewOrUpdatedVolumeAttachment(va *storage.VolumeAttachment) {
                  if _, err := markAsAttached(h.client, va, nil); err != nil {
 ```
-> 注：
->   可以部署多个attacher，但只能有一个attacher领导者。可以在启动时指定--leader-election开启选举
->   文件存储就不需要attache，因为不需要绑定设备到节点上，直接使用网络接口就可以了
+> 注：可以部署多个attacher，但只能有一个attacher领导者。可以在启动时指定--leader-election开启选举。文件存储就不需要attache，因为不需要绑定设备到节点上，直接使用网络接口就可以了
 
 # CSI-Plugin（In-tree）
 
