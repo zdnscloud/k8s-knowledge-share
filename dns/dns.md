@@ -31,14 +31,14 @@ dnsConfig:
 ```
   * configuration will be merged with configure generated based on DNSPolicy
 
-# Endpoint FQDN
-Based on the pod it refers to
-1. Created by StatefulSet 
-  * [pod-name].[svc-name].[namespace-name].svc.[cluster-dns]
-2. Pod with hostName and subdomain, and subdomain is equal to svc-name
-  * [host-name].[svc-name].[namespace-name].svc.[cluster-dns]
-3. Other pods
-  * [pod-ip-use-middle-score].[svc-name].[namespace-name].svc.[cluster-dns]
+# Service Discovery
+  * New domain is introduced to DNS system by creating new Service
+  * Headless service (ClusterIP == "None") also create the domain for the Pod it related
+   + Pod created by StatefulSet 
+     * [pod-name].[svc-name].[namespace-name].svc.[cluster-dns]
+   + Pod with hostName and subdomain, and subdomain is equal to svc-name
+     * [host-name].[svc-name].[namespace-name].svc.[cluster-dns]
+
 
 # Service DNS record
 1. FQDN
