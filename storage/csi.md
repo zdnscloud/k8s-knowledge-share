@@ -408,14 +408,12 @@ Attacher监听Kube-API中的volumeattachments对象，然后
 
  1. 调用csi-driver/identity的Probe判断其健康状态，如果正常则
  2. 调用csi-driver/identity的GetPluginInfo得到其名称版本信息，如果得到则
- 3. 调用csi-driver/identityGetPluginCapabilities，判断csi-driver是否有PluginCapability\_Service\_CONTROLLER\_SERVICE能力，如果没有就使用TrivialHandler处理attach。如果有则
- 4. 调用csi-driver/controller的ControllerGetCapabilities判断其是否有ControllerServiceCapability\_RPC\_PUBLISH\_UNPUBLISH\_VOLUME能力，如果没有就使用TrivialHandler处理attach，如果有就用CSIHandler处理attach。
+ 3. 调用csi-driver/identityGetPluginCapabilities，判断csi-driver是否有PluginCapability\_Service\_CONTROLLER\_SERVICE能力=
+ 4. 调用csi-driver/controller的ControllerGetCapabilities判断其是否有ControllerServiceCapability\_RPC\_PUBLISH\_UNPUBLISH\_VOLUME能力
+ 5. 如果同时具备以上两种能力就使用CSIHandler处理attach，否则使用TrivialHandler。
     使用两种不同的handler，都会执行SyncNewOrUpdatedVolumeAttachment ，最终将volumeattachment的attached置为true。
- 
     CSIHandler：先调用csi-driver/controller的ControllerPublishVolume/ ControllerUnpublishVolume函数，再调用markAsAttached将VolumeAttachment.Attached重置为true
-
     TrivialHandler：直接调用markAsAttached，将VolumeAttachment.Attached重置为true
-
 
 ## 源码
 
@@ -615,4 +613,77 @@ rsp, err := c.nodeClient.NodeGetCapabilities(ctx, &csi.NodeGetCapabilitiesReques
 resp, err := c.ctrlClient.ControllerExpandVolume(ctx, req)
 ```
 
+## CSI的默认实现
+项目[csi-common](github.com/kubernetes-csi/drivers/pkg/csi-common)提供了controller,identity和nodeserver的默认实现
+```golang
+type CSIDriver struct {
+    name    string
+    nodeID  string
+    version string
+    cap     []*csi.ControllerServiceCapability
+    vc      []*csi.VolumeCapability_AccessMode
+}
+```
+默认实现的主要逻辑有
+```golang
+func (ids *DefaultIdentityServer) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
+    glog.V(5).Infof("Using default capabilities")
+    return &csi.GetPluginCapabilitiesResponse{
+        Capabilities: []*csi.PluginCapability{
+            {   
+                Type: &csi.PluginCapability_Service_{
+                    Service: &csi.PluginCapability_Service{
+                        Type: csi.PluginCapability_Service_CONTROLLER_SERVICE,
+                    },  
+                },  
+            },  
+        },  
+    }, nil 
+}
 
+func (ids *DefaultIdentityServer) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
+    glog.V(5).Infof("Using default GetPluginInfo")
+
+    if ids.Driver.name == "" {
+        return nil, status.Error(codes.Unavailable, "Driver name not configured")
+    }   
+
+    if ids.Driver.version == "" {
+        return nil, status.Error(codes.Unavailable, "Driver is missing version")
+    }   
+
+    return &csi.GetPluginInfoResponse{
+        Name:          ids.Driver.name,
+        VendorVersion: ids.Driver.version,
+    }, nil 
+}
+
+func (cs *DefaultControllerServer) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
+    glog.V(5).Infof("Using default ControllerGetCapabilities")
+
+    return &csi.ControllerGetCapabilitiesResponse{
+        Capabilities: cs.Driver.cap,
+    }, nil 
+}
+
+func (ns *DefaultNodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+    glog.V(5).Infof("Using default NodeGetCapabilities") 
+
+    return &csi.NodeGetCapabilitiesResponse{
+        Capabilities: []*csi.NodeServiceCapability{
+            {
+                Type: &csi.NodeServiceCapability_Rpc{
+                    Rpc: &csi.NodeServiceCapability_RPC{
+                        Type: csi.NodeServiceCapability_RPC_UNKNOWN,
+                    },  
+                },          
+            },          
+        },          
+    }, nil      
+}
+```
+
+CSIDriver作为数据源，决定了其中3个接口的返回
+  * ControllerGetCapabilities
+  * GetPluginInfo
+  * NodeGetInfo
