@@ -7,8 +7,8 @@ ReplicationController、ReplicaSet、StatefulSet、DaemonSet 和 Deployment
 当创建一个 ReplicaSet 时，Kubernetes 自动设置 ReplicaSet 中每个 Pod 的 ownerReference 字段值
 
 Kubernetes 会自动为某些对象设置 ownerReference 的值，这些对象是由 ReplicationController、ReplicaSet、StatefulSet、DaemonSet 和 Deployment 所创建或管理。  
-<pre class="has">
-<code>
+
+```
 apiVersion: extensions/v1beta1
 kind: ReplicaSet
 metadata:
@@ -26,8 +26,7 @@ spec:
       containers:
       - name: nginx
         image: nginx
-<\code>
-<\pre>
+```
 
 <code>
 kubectl create -f https://k8s.io/docs/concepts/controllers/my-repset.yaml
