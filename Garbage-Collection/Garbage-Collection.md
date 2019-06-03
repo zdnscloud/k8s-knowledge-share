@@ -2,7 +2,7 @@
 
 kubernetes层面的对象:pod、ReplicationController、ReplicaSet、StatefulSet、DaemonSet和Deployment等是如何进行垃圾回收的呢？
 
-实际上，按理说以上的kubernetes对象并不会产生垃圾，对象一直都存在，除非用户或者某种控制器将对象删除。这里称为"Garbage Collection"不太准确，实际上它想讲的是在执行删除操作时如何控制对象之间的依赖关系。比如，Deployment对象创建ReplicaSet对象，ReplicaSet对象又创建pod对象，那么在删除Deployment时，是否需要删除与之相依赖的ReplicaSet与pod呢？
+按理说以上的kubernetes对象并不会产生垃圾，对象一直都存在，除非用户或者某种控制器将对象删除。这里称为"Garbage Collection"不太准确，实际上它想讲的是在执行删除操作时如何控制对象之间的依赖关系。比如，Deployment对象创建ReplicaSet对象，ReplicaSet对象又创建pod对象，那么在删除Deployment时，是否需要删除与之相依赖的ReplicaSet与pod呢？
 
 ## 定义 ##
 一个 ReplicaSet 是一组 Pod 的 Owner。 具有 Owner 的对象被称为是 Owner 的 Dependent  
