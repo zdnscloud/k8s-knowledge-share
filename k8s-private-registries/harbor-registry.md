@@ -60,7 +60,7 @@ private_registries:
   password: Readonly123
 ```
 zke在创建集群时会将此部分配置写入各节点kubelet配置文件（/var/lib/kubelet/config.json）中，一般用于配置harbor的公共只读账户，用于kubelet拉取公共镜像时使用
-`目前zke暂不支持仓库ca证书自动拷贝至集群，需手动将ca证书拷贝至节点docker目录下，方法见上：ca证书导入docker方法`
+
 
 2. 通过创建pod时指定secret使用harbor
 用于对权限要求较高的场景
