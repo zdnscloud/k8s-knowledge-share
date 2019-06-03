@@ -1,4 +1,4 @@
-Kubernetes之Garbage Collection
+###Kubernetes之Garbage Collection###
 
 ReplicationController、ReplicaSet、StatefulSet、DaemonSet 和 Deployment
 
