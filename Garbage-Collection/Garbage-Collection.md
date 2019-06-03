@@ -95,8 +95,25 @@ curl -X DELETE localhost:8080/apis/apps/v1/namespaces/default/replicasets/my-rep
 -H "Content-Type: application/json"
 ```
 
-kubectl命令也支持级联删除操作。在执行kubectl命令时指定"--cascade"选项，其值为true时删除从对象，为false不删除从对象，默认值为true。 示例如下：  
+kubectl命令也支持级联删除操作。在执行kubectl命令时指定"--cascade"选项，其值为true时删除从对象，为false不删除从对象，默认值为true且为删除模式为Background。 示例如下：  
 `kubectl delete replicaset my-repset --cascade=false`
 
 # 级联删除Deployment时的注意点 #
-当级联删除Deployment时，其删除请求中的propagationPolicy必需设定成Foreground。否则Deployment创建的ReplicaSet会被级联删除，但是ReplicaSet创建的pod不会被级联删除，会成为孤儿。  
+当级联删除Deployment时，其删除请求中的propagationPolicy必需设定成Foreground。否则Deployment创建的ReplicaSet会被级联删除，但是ReplicaSet创建的pod不会被级联删除，会成为孤儿。   
+```
+curl -X DELETE localhost:8080/apis/apps/v1/namespaces/default/deployments/emoji \
+-d '{"kind":"DeleteOptions","apiVersion":"v1","propagationPolicy":"Background"}' \
+-H "Content-Type: application/json"
+```  
+```
+curl -X DELETE localhost:8080/apis/apps/v1/namespaces/default/deployments/emoji \
+-d '{"kind":"DeleteOptions","apiVersion":"v1","propagationPolicy":"Foreground"}' \
+-H "Content-Type: application/json"
+```  
+```
+curl -X DELETE localhost:8080/apis/apps/v1/namespaces/default/deployments/emoji \
+-d '{"kind":"DeleteOptions","apiVersion":"v1","propagationPolicy":"Orphan"}' \
+-H "Content-Type: application/json"
+```  
+
+
