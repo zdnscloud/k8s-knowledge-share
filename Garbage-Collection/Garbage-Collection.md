@@ -28,13 +28,13 @@ spec:
         image: nginx
 ```
 
-<code>
+```
 kubectl create -f https://k8s.io/docs/concepts/controllers/my-repset.yaml
 kubectl get pods --output=yaml  
-<\code>
+```
 
 输出显示了 Pod 的 Owner 是名为 my-repset 的 ReplicaSet:
-<code>
+```
 apiVersion: v1
 kind: Pod
 metadata:
@@ -47,7 +47,7 @@ metadata:
     name: my-repset
     uid: d9607e19-f88f-11e6-a518-42010a800195
   ...  
-<\code>
+```
 
 当删除ReplicaSet时，可以指定是否级联删除。Kubernetes 中有两种 级联删除 的模式：background 模式和 foreground 模式。
 如果删除对象时，不自动删除它的 Dependent，这些 Dependent 被称作是原对象的 孤儿
@@ -75,31 +75,31 @@ Foreground 级联删除
 对很多 Controller 资源，包括 ReplicationController、ReplicaSet、StatefulSet、DaemonSet 和 Deployment，默认的垃圾收集策略是 orphan。 因此，除非指定其它的垃圾收集策略，否则所有 Dependent 对象使用的都是 orphan 策略
 
 下面是一个在后台删除 Dependent 对象的例子
-<code>
+```
 kubectl proxy --port=8080
 curl -X DELETE localhost:8080/apis/extensions/v1beta1/namespaces/default/replicasets/my-repset \
 -d '{"kind":"DeleteOptions","apiVersion":"v1","propagationPolicy":"Background"}' \
 -H "Content-Type: application/json"
-<\code>
+```
 
 下面是一个在前台删除 Dependent 对象的例子
-<code>
+```
 kubectl proxy --port=8080
 curl -X DELETE localhost:8080/apis/extensions/v1beta1/namespaces/default/replicasets/my-repset \
 -d '{"kind":"DeleteOptions","apiVersion":"v1","propagationPolicy":"Foreground"}' \
 -H "Content-Type: application/json"
-<\code>
+```
 
 下面是一个孤儿 Dependent 的例子
-<code>
+```
 kubectl proxy --port=8080
 curl -X DELETE localhost:8080/apis/extensions/v1beta1/namespaces/default/replicasets/my-repset \
 -d '{"kind":"DeleteOptions","apiVersion":"v1","propagationPolicy":"Orphan"}' \
 -H "Content-Type: application/json"  
-<\code>
+```
 
 kubectl 也支持级联删除。 通过设置 --cascade 为 true，可以使用 kubectl 自动删除 Dependent 对象。 设置 --cascade 为 false，会使 Dependent 对象成为孤儿 Dependent 对象。 --cascade 的默认值是 true。
 
 下面是一个例子，使一个 ReplicaSet 的 Dependent 对象成为孤儿 Dependent
-kubectl delete replicaset my-repset --cascade=false
+`kubectl delete replicaset my-repset --cascade=false`
 
