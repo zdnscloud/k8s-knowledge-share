@@ -59,11 +59,11 @@ metadata:
 在 background 级联删除模式下，Kubernetes 会立即删除 Owner 对象，然后垃圾收集器会在后台删除这些 Dependent。  
 
 ## Foreground 级联删除 ##
-在 foreground 级联删除模式下，根对象首先进入"deletion in progress"状态。在"deletion in progress" 状态会有如下的情况：
-1.对象仍然可以通过 REST API 可见。
-2.会设置对象的 deletionTimestamp 字段。
-3.对象的 metadata.finalizers 字段包含了值 “foregroundDeletion”。
-4.一旦对象被设置为"deletion in progress"状态，垃圾收集器会删除对象的所有 Dependent。 垃圾收集器在删除了所有 “Blocking” 状态的 Dependent（对象的 ownerReference.blockOwnerDeletion=true）之后，它会删除 Owner 对象。
+在 foreground 级联删除模式下，根对象首先进入"deletion in progress"状态。在"deletion in progress" 状态会有如下的情况：  
+1.对象仍然可以通过 REST API 可见。  
+2.会设置对象的 deletionTimestamp 字段。  
+3.对象的 metadata.finalizers 字段包含了值 “foregroundDeletion”。  
+4.一旦对象被设置为"deletion in progress"状态，垃圾收集器会删除对象的所有 Dependent。 垃圾收集器在删除了所有 “Blocking” 状态的 Dependent（对象的 ownerReference.blockOwnerDeletion=true）之后，它会删除 Owner 对象。  
 
 注意，在 “foreground 删除” 模式下，只有设置了 ownerReference.blockOwnerDeletion 值的 Dependent 才能阻止删除 Owner 对象。 在 Kubernetes 1.7 版本中将增加许可控制器（Admission Controller），基于 Owner 对象上的删除权限来控制用户去设置 blockOwnerDeletion 的值为 true，所以未授权的 Dependent 不能够延迟 Owner 对象的删除。
 
