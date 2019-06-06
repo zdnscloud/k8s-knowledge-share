@@ -164,7 +164,7 @@ Kubelet 作为 CRI 的客户端，而容器运行时则需要实现 CRI 的服�
 - syncLoop：从 API 或者 manifest 目录接收 Pod 更新，发送到 podWorkers 处理，大量使用 channel 处理来处理异步请求
 - 辅助的 manager，如 cAdvisor、PLEG、Volume Manager 等，处理 syncLoop 以外的其他工作
 - CRI：容器执行引擎接口，负责与 container runtime shim 通信
-- 容器执行引擎，如 dockershim、rkt 等（注：rkt 暂未完成 CRI 的迁移）
+- 容器执行引擎，如 dockershim、rkt 等
 - 网络插件，目前支持 CNI 和 kubenet
 
 ![](images/kubelet.png)
