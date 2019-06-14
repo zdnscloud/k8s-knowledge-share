@@ -5,7 +5,8 @@
 nameserver 10.43.0.10
 search default.svc.cluster.local svc.cluster.local cluster.local
 # if label of domain is shorter than 5, the domain will be append 
-# with search list before first try
+# with search list before first try, if all search list failed
+# the orginal name will be sent at last
 options ndots:5 
 ```
 2. Default
@@ -56,3 +57,16 @@ dnsConfig:
 5. CNAME
   * external type service
   * [svc-FQDN] CNAME [svc-externalName]
+
+# outer service performance
+when query outside service which isn't subdomain of the cluster domain, affected by ndots
+in resolv.conf, if the query name has shorter dot, it will go through the search list which
+make the dns query very slow.
+
+CoreDNS support autopath, it will return cname to avoid the next try through search list
+```
+www.google.com.<namespace>.svc.cluster.local cname www.google.com
+www.google.com A 1.1.1.1
+```
+But autopath may always query the upstream dns first, and it won't cache the result, which may
+cause problem when upstream server has query rate limit.
