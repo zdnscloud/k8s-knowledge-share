@@ -89,6 +89,7 @@ type ObjectMeta struct {
     //...
 }
 ```
+***note: object fetched from api server has empty TypeMeta***
 
 # Client set
 *k8s.io/client-go/kubernetes/typed*
