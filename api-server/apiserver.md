@@ -36,6 +36,11 @@ does lossless conversion to return objects in the required version.
   * GroupVersionKind(GVK) is related to GVR. the process of mapping a GVK to a GVR is called  
     a REST mapping
   * use kubectl to access the url, *kubectl get --raw /api/v1/nodes/master*
+  * use kubectl api-resources to list all the resources
+
+5. Category
+  * Resource can be part of categories
+  * The most common use is the all category as in kubectl get all
 
 # Request processing
 ![""](api-server-request-process.png)
@@ -54,6 +59,20 @@ context and retrieves as well as delivers the requested object from etcd storage
   * validation: incoming objects are checked against a large validation logic
   * etcd-backed CRUD logic.
 
+# Go Client
+```golang
+import (
+    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/client-go/tools/clientcmd"
+    "k8s.io/client-go/kubernetes"
+)
+
+kubeconfig = flag.String("kubeconfig", "~/.kube/config", "path to the kubeconfig file")
+flag.Parse()
+config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+clientset, err := kubernetes.NewForConfig(config)
+pod, err := clientset.CoreV1().Pods("book").Get("example", metav1.GetOptions{})
+```
 
 # K8s object in Go
 *k8s.io/apimachinery/pkg/runtime*
@@ -174,3 +193,9 @@ type RESTMapping struct {
   * default values 
   * conversion between versions
   * codec
+
+# Discovery
+  * through /apis to list all the groups
+  * through /apis/group-name to discovery endpoints
+  * get the group, version, resource triple 
+  * kubectl has local cache to store the discovery information
