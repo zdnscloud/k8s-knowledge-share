@@ -20,13 +20,31 @@ additionalPrinterColumns:
   type: string
   JSONPath: .status.phase
 ```
-  5. subresources
+5. subresources
 
-## Go client
-1. create CRD resource
-2. Generate the go structure
-3. Generate scheme call back
-  
+## CRD with operator-sdk
+1. generate the project scaffold
+```bash
+operator-sdk new immense --vendor --dep-manager dep
+```
+2. generate go structure and interface implementation
+```bash
+operator-sdk add api --api-version=zdns.cn/v1 --kind=Cluster
+```
+3. update spec and status of the resource 
+```bash
+operator-sdk generate k8s
+operator-sdk generate openapi
+```
+6. Generate clientset and informer
+```bash
+go get k8s.io/code-generator
+go get k8s.io/apimachinery
+k8s.io/code-generate/generate-groups.sh all \
+        "vg-op/pkg/client" \
+        "vg-op/pkg/apis" \
+        zdns:v1
+```
 
 ## Dynamic client 
 1. client without scheme or REST mapping
