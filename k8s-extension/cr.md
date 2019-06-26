@@ -36,7 +36,7 @@ operator-sdk add api --api-version=zdns.cn/v1 --kind=Cluster
 operator-sdk generate k8s
 operator-sdk generate openapi
 ```
-6. Generate clientset and informer
+4. Generate clientset and informer
 ```bash
 go get k8s.io/code-generator
 go get k8s.io/apimachinery
