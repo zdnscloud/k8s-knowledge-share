@@ -227,7 +227,16 @@ spec:
           command: ["/usr/sbin/nginx","-s","quit"]
 ```
 
-在容器创建之后，容器的Entrypoint执行之前，这时候Pod已经被调度到某台node上，被某个kubelet管理了，这时候kubelet会调用postStart操作，该操作跟容器的启动命令是在异步执行的，也就是说在postStart操作执行完成之前，kubelet会锁住容器，不让应用程序的进程启动，只有在 postStart操作完成之后容器的状态才会被设置成为RUNNING。
+PostStart
+
+这个钩子在容器创建后立即执行。
+但是，并不能保证钩子将在容器ENTRYPOINT之前运行。
+没有参数传递给处理程序。
+
+PreStop
+
+这个钩子在容器终止之前立即被调用。
+它是阻塞的，意味着它是同步的， 所以它必须在删除容器的调用发出之前完成。
 
 如果postStart或者preStop hook失败，将会终止容器。
 
