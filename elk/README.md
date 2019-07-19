@@ -128,10 +128,10 @@ example/fluent-bit.yaml
         Time_Key    time
         Time_Format %d-%b-%Y %H:%M:%S.%L
 ```
+```
 kubectl apply -f example/fluent-bit.yaml
-
 kubectl get svc kibana
-
+```
 浏览器访问kibana服务
 
 导入export.ndjson（针对vanguard做的dashboard）
