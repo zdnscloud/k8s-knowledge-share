@@ -9,7 +9,16 @@
 ## fluent-bit流程
 ![""](fluent-bit.png)
 
-## 配置部署
+## 日志收集方式
+- 日志均以标准的stderr和stdout输出，这个一般输出的格式取决于docker的日志驱动，一般为json-file，在/var/log/containers/目录里
+- 日志输出到持久化存储落盘
+
+## 部署方案
+- Fluent-bit以DaemonSet部署到k8s节点
+- Fluent-bit以sidecar方式部署到应用pod
+
+
+## DaemonSet方式部署
 example/elasticsearch.yaml
 ```
 ...
