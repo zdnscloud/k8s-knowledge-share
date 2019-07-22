@@ -1,4 +1,4 @@
-# Kubernetes之Garbage Collection #
+# GC之使用方式 #
 
 kubernetes层面的对象:pod、ReplicationController、ReplicaSet、StatefulSet、DaemonSet和Deployment等是如何进行垃圾回收的呢？
 
