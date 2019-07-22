@@ -52,7 +52,67 @@ OwnerReference 包含了足够的信息来标识当前对象的依赖者，对�
     * 如果item是删除，则从DAG中删除该对象，并将其所有依赖对象排队到脏队列。
   * 传播器不需要执行任何RPCs，因此一个worker就足够了。这使得锁定更加容易。
   * 使用传播器，我们只需要在启动GC时运行扫描器来填充DAG和脏队列。
-  
+## 用"orphan" finalizer使后代成为孤儿  
+用户可能希望在孤立依赖对象(例如pods)的同时删除拥有的对象(例如replicaset)，也就是说，保持依赖对象不变。我们通过引入"orphan" finalizer来支持这种用例。Finalizer 是一个泛型API，所以我们首先描述泛型终结器框架，然后描述"orphan" finalizer的特定设计。
+### The finalizer framework
+
+### API changes
+
+```go
+type ObjectMeta struct {
+	…
+	Finalizers []string
+}
+```
+**ObjectMeta.Finalizers**:在删除对象之前需要运行的终结器列表。在从注册表中删除对象之前，此列表必须为空。列表中的每个字符串都是负责组件的标识符，用于从列表中删除条目。如果对象的deletionTimestamp为非nil，则只能删除此列表中的条目。出于安全原因，更新终结器需要特殊权限。为了强制执行准入规则，我们将终结器公开为子资源，并且在更新主资源时不允许直接更改终结器。
+### 新组件
+* Finalizers:
+  * 就像控制器一样，终结器总是在运行。
+  * 第三方可以在集群中开发并运行自己的终结器。终结器不需要在API服务器上注册。
+  * 监视满足两个条件的更新事件:
+    1. 更新后的对象在ObjectMeta.finalizer中具有终结器的标识符;
+    2. ObjectMeta.DeletionTimestamp从nil更新到非nil.
+  * 将结束逻辑应用于更新事件中的对象.
+  * 执行完结束逻辑之后，将自己在ObjectMeta.Finalizers中移除.
+  * 当最后一个finalizer从ObjectMeta.Finalizers删除后，API服务会把对像删除。
+  * 因为结束逻辑可能被多次应用（例如，终结器在应用结束逻辑之后但在从ObjectMeta.Finalizers移除之前崩溃），结束逻辑必须是幂等的。
+  * 如果终结器未能及时执行，具有适当权限的用户可以从ObjectMeta.Finalizers手动删除终结器。我们将提供kubectl命令来执行此操作。
+
+### 对现有组件的更改
+
+* API server:
+  * Deletion handler:
+    * 如果要删除的对象的`ObjectMeta.Finalizers`非空，则更新DeletionTimestamp，但不删除该对象。
+    * 如果`ObjectMeta.Finalizers`为空且options.GracePeriod为零，则删除该对象。如果options.GracePeriod不为零，则只更新DeletionTimestamp。
+  * Update handler:
+    * 如果更新删除了最后一个终结器，并且DeletionTimestamp为非零，并且DeletionGracePeriodSeconds为零，则从注册表中删除该对象。
+    * 如果更新删除了最后一个终结器，并且DeletionTimestamp为非零，但DeletionGracePeriodSeconds不为零，则只更新该对象。
+
+### The "orphan" finalizer
+### API changes
+
+```go
+type DeleteOptions struct {
+	…
+	OrphanDependents bool
+}
+```
+**DeleteOptions.OrphanDependents**: 允许用户表达依赖对象是否应该是孤立的。它默认为true，因为版本1.2之前的控制器期望依赖对象成为孤立对象。
+
+### 对现有组件的更改
+
+* API server:
+处理删除请求时，根据DeleteOptions.OrphanDependents是否为真，API服务器更新对象以向/从ObjectMeta.Finalizers map添加/删除"orphan" finalizer。
+
+### 新组件
+
+将第四个组件添加到垃圾收集器, the"orphan" finalizer:
+* 如上所述监视更新事件[The finalizer framework](#the-finalizer-framework).
+* 从其依赖项的`OwnerReferences`中删除事件中的对象。
+  * 依赖对象可以通过GC保存的DAG找到，或者通过重新依赖依赖资源并检查每个潜在依赖对象的OwnerReferences字段。
+* 同时删除依赖对象具有的任何悬空所有者引用。
+* 最后，将自己从对象的`ObjectMeta.Finalizers`中删除。
+
 ## 实现原理
 GarbageCollector 中包含一个 GraphBuilder 结构体，这个结构体会以 Goroutine 的形式运行并使用 Informer 监听集群中几乎全部资源的变动，一旦发现任何的变更事件 — 增删改，就会将事件交给主循环处理，主循环会根据事件的不同选择将待处理对象加入不同的队列，与此同时 GarbageCollector 持有的另外两组队列会负责删除或者孤立目标对象。
 
