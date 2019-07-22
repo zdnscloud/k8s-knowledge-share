@@ -2,19 +2,19 @@
 在 Kubernetes 引入垃圾收集器之前，所有的级联删除逻辑都是在客户端完成的，kubectl 会先删除 ReplicaSet 持有的 Pod 再删除 ReplicaSet，但是垃圾收集器的引入就让级联删除的实现移到了服务端，我们在这里就会介绍垃圾收集器的设计和实现原理。
 
 # 概述 #
-垃圾收集主要提供的功能就是级联删除，它向对象的 API 中加入了 metadata.ownerReferences 字段，这一字段会包含当前对象的所有依赖者，在默认情况下，如果当前对象的所有依赖者都被删除，那么当前对象就会被删除：
+垃圾收集主要提供的功能就是级联删除，它向对象的 API 中加入了 metadata.ownerReferences 字段，这一字段会包含当前对象的所有依赖者，在默认情况下，如果当前对象的所有依赖者都被删除，那么当前对象就会被删除：  
 <code>
-type ObjectMeta struct {
-	...
-	OwnerReferences []OwnerReference
-}
-
-type OwnerReference struct {
-	APIVersion string
-	Kind string
-	Name string
-	UID types.UID
-}
+type ObjectMeta struct {  
+	...  
+	OwnerReferences []OwnerReference  
+}  
+  
+type OwnerReference struct {  
+	APIVersion string  
+	Kind string  
+	Name string  
+	UID types.UID  
+}  
 </code>
 OwnerReference 包含了足够的信息来标识当前对象的依赖者，对象的依赖者必须与当前对象位于同一个命名空间 namespace，否则两者就无法建立起依赖关系。
 
