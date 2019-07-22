@@ -3,7 +3,7 @@
 
 # 概述 #
 垃圾收集主要提供的功能就是级联删除，它向对象的 API 中加入了 metadata.ownerReferences 字段，这一字段会包含当前对象的所有依赖者，在默认情况下，如果当前对象的所有依赖者都被删除，那么当前对象就会被删除：  
-<code>
+```go
 type ObjectMeta struct {  
 	...  
 	OwnerReferences []OwnerReference  
@@ -15,7 +15,7 @@ type OwnerReference struct {
 	Name string  
 	UID types.UID  
 }  
-</code>
+```
 OwnerReference 包含了足够的信息来标识当前对象的依赖者，对象的依赖者必须与当前对象位于同一个命名空间 namespace，否则两者就无法建立起依赖关系。
 
 通过引入 metadata.ownerReferences 能够建立起不同对象的关系，但是我们依然需要其他的组件来负责处理对象之间的联系并在所有依赖者不存在时将对象删除，这个处理不同对象联系的组件就是 GarbageCollector，也是 Kubernetes 控制器的一种。
