@@ -1,7 +1,16 @@
 垃圾收集器在 Kubernetes 中的作用就是删除之前有所有者但是现在所有者已经不存在的对象，例如删除 ReplicaSet 时会删除它依赖的 Pod，虽然它的名字是垃圾收集器，但是它在 Kubernetes 中还是以控制器的形式进行设计和实现的。  
+
+设计目标包括:  
+* 支持服务器端级联删除。  
+* 集中级联删除逻辑，而不是在控制器中扩展。  
+* 允许选择性地孤立依赖对象。  
+非目标包括:  
+* 立即释放对象的名称，以便可以尽快重用它。  
+* 在级联删除中传播宽限期。  
+
 在 Kubernetes 引入垃圾收集器之前，所有的级联删除逻辑都是在客户端完成的，kubectl 会先删除 ReplicaSet 持有的 Pod 再删除 ReplicaSet，但是垃圾收集器的引入就让级联删除的实现移到了服务端，我们在这里就会介绍垃圾收集器的设计和实现原理。
 
-## 概述 ##
+## 概述
 垃圾收集主要提供的功能就是级联删除，它向对象的 API 中加入了 metadata.ownerReferences 字段，这一字段会包含当前对象的所有依赖者，在默认情况下，如果当前对象的所有依赖者都被删除，那么当前对象就会被删除：  
 ```go
 type ObjectMeta struct {  
@@ -18,14 +27,40 @@ type OwnerReference struct {
 ```
 OwnerReference 包含了足够的信息来标识当前对象的依赖者，对象的依赖者必须与当前对象位于同一个命名空间 namespace，否则两者就无法建立起依赖关系。  
 通过引入 metadata.ownerReferences 能够建立起不同对象的关系，但是我们依然需要其他的组件来负责处理对象之间的联系并在所有依赖者不存在时将对象删除，这个处理不同对象联系的组件就是 GarbageCollector，也是 Kubernetes 控制器的一种。
-## 实现原理 ##
+## the Garbage Collector
+如果对象的OwnerReferences中列出的所有者都不存在，则垃圾收集器负责删除对象。垃圾收集器由扫描器、垃圾处理器和传播器组成。
+* 扫描器:
+  * 使用discovery API检测系统支持的所有资源。
+  * 定期扫描系统中的所有资源，并将每个对象添加到脏队列中。
+* 垃圾处理器:
+  * 由脏队列和workers组成。
+  * 每个worker:
+    * 从脏队列中删除项。
+    * 如果项目的OwnerReferences为空，则继续处理脏队列中的下一个项目。
+    * 否则检查所有者引用中的每个条目:
+      * 如果存在至少一个所有者，则什么也不做。
+      * 如果不存在任何所有者，则请求API服务器删除项。
+* 传播器（Propagator）:
+  * 传播器用于优化，而不是用于正确性。
+  * 由事件队列、单个worker和所有者依赖关系的DAG组成。
+    * DAG只存储name/uid/orphan三个属性，而不是每个项目的整个主体。
+  * 监视所有资源的创建/更新/删除事件，将事件插入到事件队列。
+  * Worker:
+    * 从事件队列中删除项。
+    * 如果item是创建或更新，则相应地更新DAG。
+      * 如果对象有一个所有者，而该所有者还不存在于DAG中，那么除了将该对象添加到DAG之外，还将该对象排队到脏队列中。
+    * 如果item是删除，则从DAG中删除该对象，并将其所有依赖对象排队到脏队列。
+  * 传播器不需要执行任何RPCs，因此一个worker就足够了。这使得锁定更加容易。
+  * 使用传播器，我们只需要在启动GC时运行扫描器来填充DAG和脏队列。
+  
+## 实现原理
 GarbageCollector 中包含一个 GraphBuilder 结构体，这个结构体会以 Goroutine 的形式运行并使用 Informer 监听集群中几乎全部资源的变动，一旦发现任何的变更事件 — 增删改，就会将事件交给主循环处理，主循环会根据事件的不同选择将待处理对象加入不同的队列，与此同时 GarbageCollector 持有的另外两组队列会负责删除或者孤立目标对象。
 
 ![""](gc.png)
 
 接下来我们会从几个关键点介绍垃圾收集器是如何删除 Kubernetes 集群中的对象以及它们的依赖的。  
 
-## 删除策略 ##
+## 删除策略
 多个资源的 Informer 共同构成了垃圾收集器中的 Propagator，它监听所有的资源更新事件并将它们投入到工作队列中，这些事件会更新内存中的 DAG，这个 DAG 表示了集群中不同对象之间的从属关系，垃圾收集器的多个 Worker 会从两个队列中获取待处理的对象并调用 attemptToDeleteItem 和 attempteToOrphanItem 方法，这里我们主要介绍 attemptToDeleteItem 的实现：  
 ```go
 func (gc *GarbageCollector) attemptToDeleteItem(item *node) error {
@@ -99,4 +134,11 @@ type ObjectMeta struct {
 通过 OrphanFinalizer 我们能够在删除一个 Kubernetes 对象时保留它的全部依赖，为使用者提供一种更灵活的办法来保留和删除对象。  
 
 ## 总结 ##
-Kubernetes 中垃圾收集器的实现还是比较容易理解的，它的主要作用就是监听集群中对象的变更事件并根据两个字段 OwnerReferences 和 Finalizers 确定对象的删除策略，其中包括同步和后台的选择、是否应该触发级联删除移除当前对象的全部依赖；在默认情况下，当我们删除 Kubernetes 集群中的 ReplicaSet、Deployment 对象时都会删除这些对象的全部依赖，不过我们也可以通过 OrphanFinalizer 终结器删除单独的对象。
+Kubernetes 中垃圾收集器的主要作用就是监听集群中对象的变更事件并根据两个字段 OwnerReferences 和 Finalizers 确定对象的删除策略，其中包括同步和后台的选择、是否应该触发级联删除移除当前对象的全部依赖；在默认情况下，当我们删除 Kubernetes 集群中的 ReplicaSet、Deployment 对象时都会删除这些对象的全部依赖，不过我们也可以通过 OrphanFinalizer 终结器删除单独的对象。
+
+友情链接：
+https://blog.gmem.cc/extend-kubernetes-with-custom-resources
+https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/garbage-collection.md
+https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/synchronous-garbage-collection.md
+
+
