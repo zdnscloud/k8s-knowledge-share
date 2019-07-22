@@ -23,7 +23,7 @@ OwnerReference 包含了足够的信息来标识当前对象的依赖者，对�
 实现原理
 GarbageCollector 中包含一个 GraphBuilder 结构体，这个结构体会以 Goroutine 的形式运行并使用 Informer 监听集群中几乎全部资源的变动，一旦发现任何的变更事件 — 增删改，就会将事件交给主循环处理，主循环会根据事件的不同选择将待处理对象加入不同的队列，与此同时 GarbageCollector 持有的另外两组队列会负责删除或者孤立目标对象。
 
-![](https://github.com/zdnscloud/k8s-knowledge-share/new/master/garbage-collection/gc.png)
+![""](gc.png)
 
 接下来我们会从几个关键点介绍垃圾收集器是如何删除 Kubernetes 集群中的对象以及它们的依赖的。
 
