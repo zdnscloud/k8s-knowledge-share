@@ -122,7 +122,7 @@ GarbageCollector 中包含一个 GraphBuilder 结构体，这个结构体会以 
 
 ## 删除策略
 
-![""](gc_worker.jpg)
+![""](gc.png)
 在上图中，我用三种颜色分别标记了三条较为重要的处理过程：
 
 红色：worker 从 dirtyQueue 中取出资源对象，检查其是否带有 owner ，如果没带，则不处理。否则检测其 owner是否存在，存在，则处理下一个资源对象，不存在，删除这个 object。
@@ -147,21 +147,24 @@ GarbageCollector 中包含一个 GraphBuilder 结构体，这个结构体会以 
 - orphan删除
   owner 删除，dependents 留下。如果想在「数据处理」这条链路上做些修改达到我们目的的话，唯一可行的办法就是：在删除了 dependents 对应的 owner 对象之后，同时删除 dependents 信息中 「ownerReference」字段和对应的值。这样一来，在检测资源对象是否应该被删除的过程就会因为其没有「ownerReference」字段而放过它，最终实现了 dependents 对象的“孤立”。
 
-1、删除k-v的宿主资源
-2、propagator收到删除事件，更新DAG，把dependents资源放到DirtyQueue
-3、worker处理资源时，执行orphan finalizer，删除 dependents 的 OwnerReference 部分，并且删除orphan finalizer
-4、dependents成功变成孤儿
+1、删除k-v的宿主资源  
+2、propagator收到删除事件，更新DAG，把dependents资源放到DirtyQueue  
+3、worker处理资源时，执行orphan finalizer，删除 dependents 的 OwnerReference 部分，并且删除orphan finalizer  
+4、dependents成功变成孤儿  
 
 * Background
 
 级联删除不会因 dependent 对象而影响 owner 对象的删除操作。当我们发送给 API-Server 删除一个 owner 身份的对象的请求之后，这个资源对象会立即被删除。它「管辖」的 dependent 对象会以「静默」的方式删除。
+1、删除k-v的宿主资源  
+2、propagator收到删除事件，更新DAG，把dependents资源放到DirtyQueue  
+3、worker处理资源时，发现资源有OwnerReferences，但是不存在，删除  
 
 * Foreground
 
 API-Server 的`Delete`函数，在接受到删除请求的时候，会检查 `DeleteOptions.PropagationPolicy`参数，若其值为`DeletePropagationForeground`, API-Server 随即会对该资源对象进行 Update 操作：
 
-1. 插入`FinalizerDeleteDependents` Finalizer
+1. 插入`FinalizerDeleteDependents` Finalizer  
 
-2. 设置`ObjectMeta.DeletionTimestamp`为当前值
+2. 设置`ObjectMeta.DeletionTimestamp`为当前值  
 
 然后，在 GC 处理 owner 对象的 Update 事件的逻辑中，还会给 owner 对象打上一个「正在删除 dependents」 对象的标签。之后，我们会将 owner 对象管辖的 dependent 对象和他自己都加入到 dirtyQueue。dirtyQueue 的 worker 在处理 owner 对象的时候，会检查 owner 对象 「正在删除 dependents」的标签是否存在，如果仍有 dependent 对象没有被删掉，owner 会被轮询处理。而 dependent 对象将会被正常删除。当 dependent 对象相应的删除事件被 Propagator 感知到后，会将其从 DAG 和其 owner 的 dependents 信息中删除。几个循环之后，dependents 被删光，而 owner 对象中的 finalizer 和自身也会随之被删掉。
