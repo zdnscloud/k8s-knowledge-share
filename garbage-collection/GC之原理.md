@@ -125,15 +125,15 @@ GarbageCollector 中包含一个 GraphBuilder 结构体，这个结构体会以 
 ![""](gc_worker.jpg)
 在上图中，我用三种颜色分别标记了三条较为重要的处理过程：
 
-红色：worker 从 dirtyQueue 中取出资源对象，检查其是否带有 owner ，如果没带，则不处理。否则检测其 owner是否存在，存在，则处理下一个资源对象，不存在，删除这个 object。
-绿色： scanner 从 api-server 中扫描存在于 k8s 集群中的资源对象并加入至 dirtyQueue
-粉色：propagator.worker 从 eventQueue 中取出相应的事件并且获得对应的资源对象，根据事件的类型以及相应资源对象所属 owner 对象的情况来进行判定，是否要进行两个操作：
-从 DAG 中删除相应节点（多为响应 DELETE 事件的逻辑）
-将有级联关系但是 owner 不存在的对象送入 diryQueue 中
-其中红色是「数据处理」过程，而绿色和粉色是「数据收集」的过程。在「数据处理」的过程中（即我们上面分析过的 GC 的 Worker 的工作过程），worker 做的较为重要的工作有两步：
+红色：worker 从 dirtyQueue 中取出资源对象，检查其是否带有 owner ，如果没带，则不处理。否则检测其 owner是否存在，存在，则处理下一个资源对象，不存在，删除这个 object。  
+绿色： scanner 从 api-server 中扫描存在于 k8s 集群中的资源对象并加入至 dirtyQueue  
+粉色：propagator.worker 从 eventQueue 中取出相应的事件并且获得对应的资源对象，根据事件的类型以及相应资源对象所属 owner 对象的情况来进行判定，是否要进行两个操作：  
+从 DAG 中删除相应节点（多为响应 DELETE 事件的逻辑）  
+将有级联关系但是 owner 不存在的对象送入 diryQueue 中  
+其中红色是「数据处理」过程，而绿色和粉色是「数据收集」的过程。在「数据处理」的过程中（即我们上面分析过的 GC 的 Worker 的工作过程），worker 做的较为重要的工作有两步：  
 
-检查资源对象信息的「ownerReference」字段，判断其是否处在一个级联关系中
-若资源对象有所属 owner 且不存在，则删除这个对象
+检查资源对象信息的「ownerReference」字段，判断其是否处在一个级联关系中  
+若资源对象有所属 owner 且不存在，则删除这个对象  
 
 * 指定同步的删除模式，需要在两个不同的位置设置两个参数：
 
