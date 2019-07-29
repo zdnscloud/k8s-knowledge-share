@@ -144,7 +144,7 @@ GarbageCollector 中包含一个 GraphBuilder 结构体，这个结构体会以 
 
 `BlockOwnerDeletion` ：如果为真，并且所有者具有“foregroundDeletion”终结器，则在删除dependents 之前，不能从k-v中删除所有者。默认值为false。
 
-* orphan删除
+* orphan删除  
   owner 删除，dependents 留下。如果想在「数据处理」这条链路上做些修改达到我们目的的话，唯一可行的办法就是：在删除了 dependents 对应的 owner 对象之后，同时删除 dependents 信息中 「ownerReference」字段和对应的值。这样一来，在检测资源对象是否应该被删除的过程就会因为其没有「ownerReference」字段而放过它，最终实现了 dependents 对象的“孤立”。
 
 1、删除k-v的宿主资源  
