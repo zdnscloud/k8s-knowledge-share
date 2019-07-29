@@ -121,84 +121,47 @@ GarbageCollector 中包含一个 GraphBuilder 结构体，这个结构体会以 
 接下来我们会从几个关键点介绍垃圾收集器是如何删除 Kubernetes 集群中的对象以及它们的依赖的。  
 
 ## 删除策略
-多个资源的 Informer 共同构成了垃圾收集器中的 Propagator，它监听所有的资源更新事件并将它们投入到工作队列中，这些事件会更新内存中的 DAG，这个 DAG 表示了集群中不同对象之间的从属关系，垃圾收集器的多个 Worker 会从两个队列中获取待处理的对象并调用 attemptToDeleteItem 和 attempteToOrphanItem 方法，这里我们主要介绍 attemptToDeleteItem 的实现：  
-```go
-func (gc *GarbageCollector) attemptToDeleteItem(item *node) error {
-	latest, _ := gc.getObject(item.identity)
-	ownerReferences := latest.GetOwnerReferences()
 
-	solid, dangling, waitingForDependentsDeletion, _ := gc.classifyReferences(item, ownerReferences)
-```	
-该方法会先获取待处理的对象以及所有者的引用列表，随后使用 classifyReferences 方法将引用进行分类并按照不同的条件分别进行处理：
-```go
-	switch {
-	case len(solid) != 0:
-		ownerUIDs := append(ownerRefsToUIDs(dangling), ownerRefsToUIDs(waitingForDependentsDeletion)...)
-		patch := deleteOwnerRefStrategicMergePatch(item.identity.UID, ownerUIDs...)
-		gc.patch(item, patch, func(n *node) ([]byte, error) {
-			return gc.deleteOwnerRefJSONMergePatch(n, ownerUIDs...)
-		})
-		return err
-```		
-如果当前对象的所有者还有存在于集群中的，那么当前的对象就不会被删除，上述代码会将已经被删除或等待删除的引用从对象中删掉。  
-当正在被删除的所有者不存在任何的依赖并且该对象的 ownerReference.blockOwnerDeletion 属性为 true 时会阻止依赖方的删除，所以当前的对象会等待属性 ownerReference.blockOwnerDeletion=true 的所有对象的删除后才会被删除。
-```go
-	// ...
-	case len(waitingForDependentsDeletion) != 0 && item.dependentsLength() != 0:
-		deps := item.getDependents()
-		for _, dep := range deps {
-			if dep.isDeletingDependents() {
-				patch, _ := item.unblockOwnerReferencesStrategicMergePatch()
-				gc.patch(item, patch, gc.unblockOwnerReferencesJSONMergePatch)				
-				break
-			}
-		}
-		policy := metav1.DeletePropagationForeground
-		return gc.deleteObject(item.identity, &policy)
-	// ...	
-```	
-在默认情况下，也就是当前对象已经不包含任何依赖，那么如果当前对象可能会选择三种不同的策略处理依赖：
-```go
-	// ...
-	default:
-		var policy metav1.DeletionPropagation
-		switch {
-		case hasOrphanFinalizer(latest):
-			policy = metav1.DeletePropagationOrphan
-		case hasDeleteDependentsFinalizer(latest):
-			policy = metav1.DeletePropagationForeground
-		default:
-			policy = metav1.DeletePropagationBackground
-		}
-		return gc.deleteObject(item.identity, &policy)
-	}
-}
-```
-如果当前对象有 FinalizerOrphanDependents 终结器，DeletePropagationOrphan 策略会让对象所有的依赖变成孤立的；  
-如果当前对象有 FinalizerDeleteDependents 终结器，DeletePropagationBackground 策略在前台等待所有依赖被删除后才会删除，整个删除过程都是同步的；  
-默认情况下会使用 DeletePropagationDefault 策略在后台删除当前对象的全部依赖；  
-终结器
-对象的终结器是在对象删除之前需要执行的逻辑，所有的对象在删除之前，它的终结器字段必须为空，终结器提供了一个通用的 API，它的功能不只是用于阻止级联删除，还能过通过它在对象删除之前加入钩子：  
-```go
-type ObjectMeta struct {
-	// ...
-	Finalizers []string
-}
-```
-终结器在对象被删之前运行，每当终结器成功运行之后，就会将它自己从 Finalizers 数组中删除，当最后一个终结器被删除之后，API Server 就会删除该对象。  
+![""](gc_worker.jpg)
+在上图中，我用三种颜色分别标记了三条较为重要的处理过程：
 
-在默认情况下，删除一个对象会删除它的全部依赖，但是我们在一些特定情况下我们只是想删除当前对象本身并不想造成复杂的级联删除，垃圾回收机制在这时引入了 OrphanFinalizer，它会在对象被删除之前向 Finalizers 数组添加或者删除 OrphanFinalizer。  
+红色：worker 从 dirtyQueue 中取出资源对象，检查其是否带有 owner ，如果没带，则不处理。否则检测其 owner是否存在，存在，则处理下一个资源对象，不存在，删除这个 object。
+绿色： scanner 从 api-server 中扫描存在于 k8s 集群中的资源对象并加入至 dirtyQueue
+粉色：propagator.worker 从 eventQueue 中取出相应的事件并且获得对应的资源对象，根据事件的类型以及相应资源对象所属 owner 对象的情况来进行判定，是否要进行两个操作：
+从 DAG 中删除相应节点（多为响应 DELETE 事件的逻辑）
+将有级联关系但是 owner 不存在的对象送入 diryQueue 中
+其中红色是「数据处理」过程，而绿色和粉色是「数据收集」的过程。在「数据处理」的过程中（即我们上面分析过的 GC 的 Worker 的工作过程），worker 做的较为重要的工作有两步：
 
-该终结器会监听对象的更新事件并将它自己从它全部依赖对象的 OwnerReferences 数组中删除，与此同时会删除所有依赖对象中已经失效的 OwnerReferences 并将 OrphanFinalizer 从 Finalizers 数组中删除。  
- 
-通过 OrphanFinalizer 我们能够在删除一个 Kubernetes 对象时保留它的全部依赖，为使用者提供一种更灵活的办法来保留和删除对象。  
+检查资源对象信息的「ownerReference」字段，判断其是否处在一个级联关系中
+若资源对象有所属 owner 且不存在，则删除这个对象
 
-## 总结 ##
-Kubernetes 中垃圾收集器的主要作用就是监听集群中对象的变更事件并根据两个字段 OwnerReferences 和 Finalizers 确定对象的删除策略，其中包括同步和后台的选择、是否应该触发级联删除移除当前对象的全部依赖；在默认情况下，当我们删除 Kubernetes 集群中的 ReplicaSet、Deployment 对象时都会删除这些对象的全部依赖，不过我们也可以通过 OrphanFinalizer 终结器删除单独的对象。
+* 指定同步的删除模式，需要在两个不同的位置设置两个参数：
 
-友情链接：
-https://blog.gmem.cc/extend-kubernetes-with-custom-resources
-https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/garbage-collection.md
-https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/synchronous-garbage-collection.md
+1、dependents 对象 meta 信息中 OwnerReference.BlockOwnerDeletion
+2、在发送删除对象请求时，设置 DeleteOptions.PropagationPolicy
 
+`DeleteOptions.PropagationPolicy`一共有3个候选值："Orphan"，"Background"，"Foreground"
 
+`BlockOwnerDeletion` ：如果为真，并且所有者具有“foregroundDeletion”终结器，则在删除dependents 之前，不能从k-v中删除所有者。默认值为false。
+
+- orphan删除
+  owner 删除，dependents 留下。如果想在「数据处理」这条链路上做些修改达到我们目的的话，唯一可行的办法就是：在删除了 dependents 对应的 owner 对象之后，同时删除 dependents 信息中 「ownerReference」字段和对应的值。这样一来，在检测资源对象是否应该被删除的过程就会因为其没有「ownerReference」字段而放过它，最终实现了 dependents 对象的“孤立”。
+
+1、删除k-v的宿主资源
+2、propagator收到删除事件，更新DAG，把dependents资源放到DirtyQueue
+3、worker处理资源时，执行orphan finalizer，删除 dependents 的 OwnerReference 部分，并且删除orphan finalizer
+4、dependents成功变成孤儿
+
+* Background
+
+级联删除不会因 dependent 对象而影响 owner 对象的删除操作。当我们发送给 API-Server 删除一个 owner 身份的对象的请求之后，这个资源对象会立即被删除。它「管辖」的 dependent 对象会以「静默」的方式删除。
+
+* Foreground
+
+API-Server 的`Delete`函数，在接受到删除请求的时候，会检查 `DeleteOptions.PropagationPolicy`参数，若其值为`DeletePropagationForeground`, API-Server 随即会对该资源对象进行 Update 操作：
+
+1. 插入`FinalizerDeleteDependents` Finalizer
+
+2. 设置`ObjectMeta.DeletionTimestamp`为当前值
+
+然后，在 GC 处理 owner 对象的 Update 事件的逻辑中，还会给 owner 对象打上一个「正在删除 dependents」 对象的标签。之后，我们会将 owner 对象管辖的 dependent 对象和他自己都加入到 dirtyQueue。dirtyQueue 的 worker 在处理 owner 对象的时候，会检查 owner 对象 「正在删除 dependents」的标签是否存在，如果仍有 dependent 对象没有被删掉，owner 会被轮询处理。而 dependent 对象将会被正常删除。当 dependent 对象相应的删除事件被 Propagator 感知到后，会将其从 DAG 和其 owner 的 dependents 信息中删除。几个循环之后，dependents 被删光，而 owner 对象中的 finalizer 和自身也会随之被删掉。
