@@ -1,4 +1,4 @@
-## `source to image`
+## `Source to Image`
 
 `Source-to-Image` (`s2i`) 是由`openshift`提供的一套从自动从代码构建到镜像的工具和流程。
 
@@ -143,8 +143,15 @@ exec /go/bin/singlecloud
 make build
 ```
 
-#### build singlecloud
+#### Build `singlecloud`
 
 ```bash
 s2i build https://github.com/zdnscloud/singlecloud s2i-singlecloud singlecloud
 ```
+
+#### 运行`singlecloud`
+
+```bash
+docker run -p 8080:80 --rm singlecloud singlecloud -listen :80
+```
+
