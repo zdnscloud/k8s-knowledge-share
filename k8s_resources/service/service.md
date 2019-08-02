@@ -261,6 +261,7 @@ spec:
 
 - ClusterIP Service：使用 iptables 模式，集群内部的源 IP 会保留（不做 SNAT）。如果 client 和 server pod 在同一个 Node 上，那源 IP 就是 client pod 的 IP 地址；如果在不同的 Node 上，源 IP 则取决于网络插件是如何处理的，比如使用 flannel 时，源 IP 是 node flannel IP 地址。
 - NodePort Service：默认情况下，源 IP 会做 SNAT，server pod 看到的源 IP 是 Node IP。为了避免这种情况，可以给 service 设置 `spec.ExternalTrafficPolicy=Local` （1.6-1.7 版本设置 Annotation `service.beta.kubernetes.io/external-traffic=OnlyLocal`），让 service 只代理本地 endpoint 的请求（如果没有本地 endpoint 则直接丢包），从而保留源 IP。
+>配置之后，如果一个节点相应的port收到外部请求，但是该节点上没有运行这个nodeport类型service的pod，那么不会重定向请求，会直接丢弃
 - LoadBalancer Service：默认情况下，源 IP 会做 SNAT，server pod 看到的源 IP 是 Node IP。设置 `service.spec.ExternalTrafficPolicy=Local` 后可以自动从云平台负载均衡器中删除没有本地 endpoint 的 Node，从而保留源 IP。
 
 ## 工作原理
@@ -320,6 +321,9 @@ Service 的 ClusterIP 是 Kubernetes 内部的虚拟 IP 地址，无法直接从
 * 使用 NodePort 服务在每台机器上绑定一个端口，这样就可以通过 `<NodeIP>:NodePort` 来访问该服务。
 * 使用 LoadBalancer 服务借助 Cloud Provider 创建一个外部的负载均衡器，并将请求转发到 `<NodeIP>:NodePort`。该方法仅适用于运行在云平台之中的 Kubernetes 集群。对于物理机部署的集群，可以使用 [MetalLB](https://github.com/google/metallb) 实现类似的功能。
 * 使用 Ingress Controller 在 Service 之上创建 L7 负载均衡并对外开放。
+
+## to do
+* endpoint controller与service controller的相关逻辑
 
 ## 参考资料
 
