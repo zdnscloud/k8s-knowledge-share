@@ -94,9 +94,9 @@ spec:
 
 在创建 Service 的时候，也可以不指定 Selectors，用来将 service 转发到 kubernetes 集群外部的服务（而不是 Pod）。
 * why
-    * You want to have an external database cluster in production, but in your test environment you use your own databases.
-    * You want to point your Service to a Service in a different Namespace or on another cluster.
-    * You are migrating a workload to Kubernetes. Whilst evaluating the approach, you run only a proportion of your backends in Kubernetes.
+    * 希望在生产中拥有外部数据库集群，但在测试环境中，您使用自己的数据库。
+    * 希望将服务指向不同命名空间中服务 或在另一个集群上。
+    * 正在将工作负载迁移到Kubernetes。在评估方法时，只在Kubernetes中运行一部分后端。
 * 目前支持两种方法
 （1）自定义 endpoint，即创建同名的 service 和 endpoint，在 endpoint 中设置外部服务的 IP 和端口
 
@@ -104,22 +104,22 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: my-service
+  name: test-service-2
 spec:
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 9376
+    - protocol: UDP
+      port: 5353
+      targetPort: 53
 ---
 kind: Endpoints
 apiVersion: v1
 metadata:
-  name: my-service
+  name: test-service-2
 subsets:
   - addresses:
-      - ip: 1.2.3.4
+      - ip: 114.114.114.114
     ports:
-      - port: 9376
+      - port: 53
 ```
 
 > Note:
@@ -133,11 +133,10 @@ Endpoint IP addresses cannot be the cluster IPs of other Kubernetes Services, be
 kind: Service
 apiVersion: v1
 metadata:
-  name: my-service
-  namespace: default
+  name: test-service-3
 spec:
   type: ExternalName
-  externalName: my.database.example.com
+  externalName: linode.wangyanwei.xyz
 ```
 
 ### Headless Service
@@ -157,11 +156,11 @@ kind: Service
 metadata:
   labels:
     app: nginx
-  name: nginx
+  name: nginx-service
 spec:
   clusterIP: None
   ports:
-  - name: tcp-80-80-3b6tl
+  - name: tcp-80-80
     port: 80
     protocol: TCP
     targetPort: 80
@@ -176,7 +175,6 @@ metadata:
   labels:
     app: nginx
   name: nginx
-  namespace: default
 spec:
   replicas: 2
   revisionHistoryLimit: 5
@@ -190,14 +188,8 @@ spec:
     spec:
       containers:
       - image: nginx:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         name: nginx
-        resources:
-          limits:
-            memory: 128Mi
-          requests:
-            cpu: 200m
-            memory: 128Mi
       dnsPolicy: ClusterFirst
       restartPolicy: Always
 
@@ -226,19 +218,43 @@ nginx.default.svc.cluster.local. 30 IN	A	172.26.2.5
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-service
+  name: test-service-4
 spec:
   selector:
-    app: MyApp
+    app: hello
   ports:
     - name: http
       protocol: TCP
-      port: 80
-      targetPort: 9376
+      port: 9000
+      targetPort: 9090
   externalIPs:
-    - 80.11.12.10
+    - 192.168.134.101
+    - 192.168.134.102
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: hello
+  name: hello
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: hello
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+      - image: hiwenzi/hello-world-go:latest
+        imagePullPolicy: IfNotPresent
+        name: hello
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
 ```
-statefulset借助于headless为其pod提供稳定的网络标识
 ### 源IP策略
 
 各种类型的 Service 对源 IP 的处理方法不同：
