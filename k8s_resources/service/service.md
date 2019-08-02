@@ -238,7 +238,7 @@ spec:
   externalIPs:
     - 80.11.12.10
 ```
-
+statefulset借助于headless为其pod提供稳定的网络标识
 ### 源IP策略
 
 各种类型的 Service 对源 IP 的处理方法不同：
