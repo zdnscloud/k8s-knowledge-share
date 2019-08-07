@@ -26,7 +26,12 @@ $ gitbook serve
 ```
 gitbook build
 ```
-
+想生成pdf/epub/mobi，可以在docs目录下执行
+```
+gitbook pdf
+gitbook epub
+gitbook mobi
+```
 ## 使用gitbook
 首先我们要制做书的所有文档应该放在docs目录下  
 在docs目录里执行
