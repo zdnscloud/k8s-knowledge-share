@@ -114,5 +114,5 @@ structure
 指定 Readme、Summary、Glossary 和 Languages 对应的文件名  
 
 ## 我做的书效果如图
-![img](book.jpg)
+![img](book.png)
 
