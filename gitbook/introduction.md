@@ -87,7 +87,7 @@ gitbook serve
 ```    
 bin：目录下有gitbook.js，写的是安装gitbook的方法  
 node_modules：gitbook用到的依赖插件  
-docs/_layouts：书的页面总局文件  
+docs/_layouts：书的页面布局文件  
 docs/styles：书的css文件  
 book.js：基本配置信息  
 package.json：全部的配置信息，可以包含如下：  
