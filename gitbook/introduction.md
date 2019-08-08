@@ -1,5 +1,11 @@
 # gitbook使用方法介绍
 
+在singlecloud/makebook目录下执行
+```
+gitbook serve
+```
+访问http://localhost:4000，就可以看到singlecloud的文档效果。具体gitbook的安装与使用如下。
+
 ## 环境要求
 * NodeJS (v4.0.0 and above is recommended)
 * Windows, Linux, Unix, or Mac OS X
