@@ -1,4 +1,4 @@
- ![""](.png)
+ ![""](lvsf.png)
 ## 路由
 - Logstash：将所有数据路由到单个流中，然后用if-then区分发送到目标
 - Fluentd：依靠标签来路由事件
