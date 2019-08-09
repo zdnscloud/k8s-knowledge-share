@@ -20,9 +20,9 @@ Logstash 是一个具有实时渠道能力的数据收集引擎。使用 JRuby �
 可以和多种外部应用结合
 支持弹性扩展
 #####  主要部分组成
-- Shipper－发送日志数据
-- Broker－收集数据，缺省内置 Redis
-- Indexer－数据写入
+- Inputs：用于从数据源获取数据，常见的插件如file, syslog, redis, beats 等
+- Filters：用于处理数据如格式转换，数据派生等，常见的插件如grok, mutate, drop,  clone, geoip等
+- Outputs：用于数据输出，常见的插件如elastcisearch，file, graphite, statsd等
 
 ![""](logstash.png)
 ## Kibana
