@@ -98,10 +98,8 @@ Docker内建了3个网络
 ## Docker单节点的四种网络模型
 
 ### Bridge
-
-        通常用于在独立容器中运行的应用程序，这是默认的Docker网络模型。
-
-        Docker守护进程创建了docker0，它是一个虚拟以太网网桥，它可以在连接到它的任何port之间自动转发数据包。 默认情况下，守护进程会通过创建一对对的网络接口将主机上的所有容器连接到此网桥，将其中一个对等端分配为容器的eth0接口，并将另一个对等端放在主机的命名空间中；以及将专用IP范围内的一个子网分配给网桥。
+    通常用于在独立容器中运行的应用程序，这是默认的Docker网络模型。
+Docker守护进程创建了docker0，它是一个虚拟以太网网桥，它可以在连接到它的任何port之间自动转发数据包。 默认情况下，守护进程会通过创建一对对的网络接口将主机上的所有容器连接到此网桥，将其中一个对等端分配为容器的eth0接口，并将另一个对等端放在主机的命名空间中；以及将专用IP范围内的一个子网分配给网桥。
         
   ![""](pictures/docker_bridge.png.jpg)
  
@@ -157,8 +155,9 @@ docker network inspect bridge命令可以查看bridge网络详细情况
 docker network inspect host命令可以查看host网络详细情况
 
 ### Container
+      共享其他容器网络
 
-        容器会共享其他容器的网络环境，两个容器之间不存在网络隔离，而这两个容器又与宿主机以及除此之外其他的容器存在网络隔离，因此需要注意端口冲突情况，否则第二个容器将无法被启动。  Kubernetes网络使用这种模式。
+容器会共享其他容器的网络环境，两个容器之间不存在网络隔离，而这两个容器又与宿主机以及除此之外其他的容器存在网络隔离，因此需要注意端口冲突情况，否则第二个容器将无法被启动。  Kubernetes网络使用这种模式。
         
   ![""](pictures/docker_container.jpg)
  
@@ -176,7 +175,7 @@ docker network inspect host命令可以查看host网络详细情况
 
         禁用Docker端的网络支持，并允许自定义网络。
 
-        不为 Docker 容器构造任何网络环境。一旦Docker 容器采用了none 网络模式，那么容器内部就只能使用loopback网络设备，不会再有其他的网络资源，容器只能使用127.0.0.1的本机网络。
+不为 Docker 容器构造任何网络环境。一旦Docker 容器采用了none 网络模式，那么容器内部就只能使用loopback网络设备，不会再有其他的网络资源，容器只能使用127.0.0.1的本机网络。
 
 例
 
@@ -190,7 +189,8 @@ docker network inspect none命令可以查看none网络详细情况
 
 ### Bridge
 
-docker network create --driver _network\_type network\_name_命令即可创建自定义网络。其中--driver后面支持的类型有三种：bridge、macvlan、overlay
+docker network create --driver _network\_type network\_name_命令即可创建自定义网络。
+其中--driver后面支持的类型有三种：bridge、macvlan、overlay
 
 docker network create my-bridge --driver bridge        #创建
 
@@ -210,7 +210,8 @@ Overlay 可以使得我们将报文在 IP 报文之上再次封装，VXLAN 技�
 
 单机模式是无法创建overlay网络模型的，需要借助分部署存储（etcd或者编排系统），部署完etcd后需要配置docker指定etcd地址后重启docker。
 
-创建overlay 网络（只需在一个节点执行）Docker network create -d overlay my-overlay
+创建overlay 网络（只需在一个节点执行）
+Docker network create -d overlay my-overlay
 
 在两个主机分别创建容器，使用--network my-overlay加入overlay网络，可以看到容器有两块网卡，eth1为走普通NAT模式，eth0 是 overlay 网段上分配的IP地址，也就是它走的是 overlay 网络，它的 MTU 是 1450 而不是 1500。
 
@@ -283,15 +284,15 @@ Docker Libnetwork的优势就是原生，而且和Docker容器生命周期结合
 在Pod启动前，kubelet调用createPodSandbox来创建环境，包括为Pod设置网络（例如：分配IP）等。 当PodSandbox启动后，就可以分别创建/启动/停止/移除独立的容器。为了删除Pod，kubelet会在停止和移除所有容器前先停止和移除 PodSandbox。
 
 github.com/kubernetes/pkg/kubelet/kuberuntime/kuberuntime\_sandbox.go
-
+```
 func (m \*kubeGenericRuntimeManager) createPodSandbox(pod \*v1.Pod, attempt uint32) (string, string, error) {
 
 podSandBoxID, err := m.runtimeService.RunPodSandbox(podSandboxConfig, runtimeHandler)
 
 }
-
+```
 github.com/kubernetes/pkg/kubelet/dockershim/docker\_sandbox.go
-
+```
 func (ds \*dockerService) RunPodSandbox(ctx context.Context, r \*runtimeapi.RunPodSandboxRequest) (\*runtimeapi.RunPodSandboxResponse, error) {
 
 err = ds.client.StartContainer(createResp.ID)
@@ -301,21 +302,20 @@ err = ds.client.StartContainer(createResp.ID)
 err = ds.network.SetUpPod(config.GetMetadata().Namespace, config.GetMetadata().Name, cID, config.Annotations, networkOptions)
 
 }
-
+```
 github.com/kubernetes /pkg/kubelet/dockershim/network/plugins.go
-
+```
 func (pm \*PluginManager) SetUpPod(podNamespace, podName string, id kubecontainer.ContainerID, annotations, options map[string]string) error {
 
 if err := pm.plugin.SetUpPod(podNamespace, podName, id, annotations, options); err != nil {
 
 }
-
 #调用plugin的SetUpPod方法，这里plugin是一个interface, 具体使用哪个plugin是由kubelet的启动参数–network-plugin决定的，我们配置的是cni
 
 }
-
+```
 github.com/kubernetes/pkg/kubelet/dockershim/network/cni/cni.go
-
+```
 获取配置文件
 
 func getDefaultCNINetwork(confDir string, binDirs []string) (\*cniNetwork, error) {
@@ -357,7 +357,7 @@ func (c \*CNIConfig) AddNetworkList(list \*NetworkConfigList, rt \*RuntimeConf) 
  prevResult, err = invoke.ExecPluginWithResult(pluginPath, newConf.Bytes, c.args(&quot;ADD&quot;, rt))
 
 }
-
+```
 该函数会遍历plugin，根据cni的type在binDir中找到同名插件，返回该插件的全路径。最后执行ExecPluginWithResult函数，它将调用cni的二进制文件并传入newConf参数以及RuntimeConf和一个ADD参数，其中ADD代表给容器添加网络。
 
 分析到这，kubelet的网络配置已经完成了，我们最终会看到kubelet在生成新pod的时候会先生成一个sandbox容器（pause），kubelet会根据pod的yaml信息和kubelet的cni参数配置生成一个cni runtime配置，最后调用cni插件完成docker容器的网络配置。
@@ -410,7 +410,7 @@ Container Runtime在创建容器时，先创建好network namespace，然后调�
  
 
 容器运行时需要一些配置并向插件发出命令。插件被调用并配置网络。
-
+```
 docker run --net=none -dt busybox
 
 docker inspect -f &#39;{{ .State.Pid }}&#39;  9d626be0
@@ -426,7 +426,7 @@ export CNI\_PATH=/opt/cni/bin/
 export CNI\_NETNS=/proc/5705/ns/net
 
 /opt/cni/bin/calico \&lt; /etc/cni/net.d/10-calico.conflist
-
+```
 此示例显示了如何使用特定配置（10-calico.conflist）将某个插件（calico）应用于给定容器（9d626be08）。请注意，虽然最初所有配置参数都作为环境变量传入，但现在更多的是使用（JSON）配置文件。
 
 ### CNI插件类型
@@ -498,11 +498,11 @@ Kubernetes并没有规定一定使用某种网络解决方案，而只是陈述�
 - 容器看到的自己的IP与其他容器看到的IP相同
 
 Kubelet开启CNI接口
-
+```
 &quot;--cni-bin-dir=/opt/cni/bin&quot;,
 
 &quot;--cni-conf-dir=/etc/cni/net.d&quot;
-
+```
 #### Flannel
 
 详见flannel
