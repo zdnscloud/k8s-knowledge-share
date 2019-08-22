@@ -244,9 +244,9 @@ cachedPodCidr, err = getPodCidr(client, conf, epIDs.Node)
 if conf.Policy.PolicyType == "k8s" {
 	if conf.IPAM.Type == "calico-ipam" {
 		v4pools = annotNS["cni.projectcalico.org/ipv4pools"]
-v6pools = annotNS["cni.projectcalico.org/ipv6pools"]
-v4poolpod := annot["cni.projectcalico.org/ipv4pools"]
-v6poolpod := annot["cni.projectcalico.org/ipv6pools"]
+		v6pools = annotNS["cni.projectcalico.org/ipv6pools"]
+		v4poolpod := annot["cni.projectcalico.org/ipv4pools"]
+		v6poolpod := annot["cni.projectcalico.org/ipv6pools"]
 	}
 }
 如果Pod或者Pod所在的namespace设置了ippool，则将pool作为参数配置的一部分
