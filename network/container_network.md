@@ -289,7 +289,7 @@ Docker Libnetwork的优势就是原生，而且和Docker容器生命周期结合
 
 github.com/kubernetes/pkg/kubelet/kuberuntime/kuberuntime\_sandbox.go
 ```
-func (m \*kubeGenericRuntimeManager) createPodSandbox(pod \*v1.Pod, attempt uint32) (string, string, error) {
+func (m *kubeGenericRuntimeManager) createPodSandbox(pod *v1.Pod, attempt uint32) (string, string, error) {
 
       podSandBoxID, err := m.runtimeService.RunPodSandbox(podSandboxConfig, runtimeHandler)
 
@@ -417,7 +417,7 @@ Container Runtime在创建容器时，先创建好network namespace，然后调�
 ```
 docker run --net=none -dt busybox
 
-docker inspect -f &#39;{{ .State.Pid }}&#39;  9d626be0
+docker inspect -f {{ .State.Pid }} 9d626be0
 
 export CNI_COMMAND=ADD
 
@@ -503,9 +503,9 @@ Kubernetes并没有规定一定使用某种网络解决方案，而只是陈述�
 
 Kubelet开启CNI接口
 ```
-&quot;--cni-bin-dir=/opt/cni/bin&quot;,
+"--cni-bin-dir=/opt/cni/bin"
 
-&quot;--cni-conf-dir=/etc/cni/net.d&quot;
+"--cni-conf-dir=/etc/cni/net.d"
 ```
 #### Flannel
 
