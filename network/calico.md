@@ -13,7 +13,7 @@ Calico 是一个基于BGP协议的网络互联解决方案。它是一个纯3层
 - 网络安全策略使用 ACL 定义，基于 iptables 实现，比起 overlay 方案中的复杂机制更只管和容易操作
 - 以.0或.255结尾的IPv4地址也可以用于分配
 
-注：网络安全策略暂时不做说明
+>	网络安全策略暂时不做说明
 
 ## 工作模式
 
@@ -30,15 +30,16 @@ Calico 是一个基于BGP协议的网络互联解决方案。它是一个纯3层
   - ipip always模式（纯ipip模式）
   - ipip cross-subnet模式（ipip-bgp混合模式），同子网内路由采用bgp，跨子网路由采用ipip
 
-注：实际上IPIP模式就是在BGP模式的基础上加了个隧道封装已解决跨网络间路由
+>	实际上IPIP模式就是在BGP模式的基础上加了个隧道封装已解决跨网络间路由
 
 ## 组网模式
 
 #### BGP Speaker 全互联模式(node-to-node mesh)
 
-全互联模式，就是一个BGP Speaker需要与其它所有的BGP Speaker建立bgp连接(形成一个bgp mesh)。网络中bgp总连接数是按照O(n^2)增长的，有太多的BGP Speaker时，会消耗大量的连接。calico默认使用全互联的方式，扩展性比较差，只能支持小规模集群:
+全互联模式，就是一个BGP Speaker需要与其它所有的BGP Speaker建立bgp连接(形成一个bgp mesh)。网络中bgp总连接数是按照O(n^2)增长的，有太多的BGP Speaker时，会消耗大量的连接。calico默认使用全互联的方式，扩展性比较差，只能支持小规模集群
 
 >	say 50 nodes - although this limit is not setin stone and
+
 >	Calico has been deployed with over 100 nodes in a full mesh topology
 
 
@@ -87,7 +88,7 @@ Felix是一个守护程序，它在每个提供endpoints资源的计算机上运
 - 编写ACLs，Felix还负责将ACLs编程到Linux内核中。 这些ACLs用于确保只能在endpoints之间发送有效的网络流量，并确保endpoints无法绕过Calico的安全措施。
 - 报告状态，Felix负责提供有关网络健康状况的数据。 特别是，它将报告配置其主机时发生的错误和问题。 该数据会被写入etcd，以使其对网络中的其他组件和操作才可见。
 
->	其中可以配置只运行 Felix, 而不跑 BIRD 和 confd. 这样就没有路由分发(BGP)和配置变更. 只有当前主机的路由.
+>	其中可以配置只运行 Felix, 而不跑 BIRD 和 confd。 这样就没有路由分发(BGP)和配置变更, 只有当前主机的路由.
 
 ### Etcd
 
@@ -386,13 +387,17 @@ spec:
 ```
 calicoctl apply –f ippool.yaml
 ### Pod固定IP
-
-#### **cni.projectcalico.org/ipAddrs**
-
+** cni.projectcalico.org/ipAddrs
+```
+annotations:
+  cni.projectcalico.org/ipAddrs
+```
 指定一个要分配给Pod的IPv4和/或IPv6地址列表。 请求的IP地址将从Calico IPAM分配，并且必须存在于已配置的IP pool中。
-
-#### **cni.projectcalico.org/ipAddrsNoIpam**
-
+** cni.projectcalico.org/ipAddrsNoIpam
+```
+annotations:
+  cni.projectcalico.org/ipAddrsNoIpam
+```
 指定一个要分配给Pod的IPv4和/或IPv6地址列表，绕过IPAM。 任何IP冲突和路由配置都必须由人工或其他系统处理。 Calico仅处理那些属于Calico IP pool 中的IP地址，将其路由分发到Pod。 如果分配的IP地址不在Calico IP pool中，则必须确保通过其他机制正确地处理该IP地址的路由。
 
 默认情况下是禁用了ipAddrsNoIpam功能。 使用该功能，则需要在CNI网络配置的feature\_control部分中启用：
@@ -420,14 +425,14 @@ calicoctl apply –f ippool.yaml
 已配置的IPv4 pool列表，可从中选择Pod的地址。
 ```
 annotations:
-  cni.projectcalico.org/ipv4pools: &#39;[&quot;zdns-ipv4-ippool&quot;]&#39;
+  cni.projectcalico.org/ipv4pools: '["zdns-ipv4-ippool"]' 
 ```
 #### **cni.projectcalico.org/ipv6pools**
 
 已配置的IPv6 pool列表，可从中选择Pod的地址。
 ```
 annotations:
-  cni.projectcalico.org/ipv6pools: &#39;[&quot;zdns-ipv6-ippool&quot;]&#39;
+  cni.projectcalico.org/ipv6pools: '["zdns-ipv6-ippool"]'
 ```
 #### 注意事项
 
