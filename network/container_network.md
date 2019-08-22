@@ -291,27 +291,27 @@ github.com/kubernetes/pkg/kubelet/kuberuntime/kuberuntime\_sandbox.go
 ```
 func (m \*kubeGenericRuntimeManager) createPodSandbox(pod \*v1.Pod, attempt uint32) (string, string, error) {
 
-  podSandBoxID, err := m.runtimeService.RunPodSandbox(podSandboxConfig, runtimeHandler)
+      podSandBoxID, err := m.runtimeService.RunPodSandbox(podSandboxConfig, runtimeHandler)
 
 }
 ```
 github.com/kubernetes/pkg/kubelet/dockershim/docker\_sandbox.go
 ```
-func (ds \*dockerService) RunPodSandbox(ctx context.Context, r \*runtimeapi.RunPodSandboxRequest) (\*runtimeapi.RunPodSandboxResponse, error) {
+func (ds *dockerService) RunPodSandbox(ctx context.Context, r *runtimeapi.RunPodSandboxRequest) (*runtimeapi.RunPodSandboxResponse, error) {
 
-  err = ds.client.StartContainer(createResp.ID)
+      err = ds.client.StartContainer(createResp.ID)
 
-  #DNS配置：通过docker inspecft查看容器信息，然后再重写容器位于宿主机的resolv文件
+     #DNS配置：通过docker inspecft查看容器信息，然后再重写容器位于宿主机的resolv文件
 
-  err = ds.network.SetUpPod(config.GetMetadata().Namespace, config.GetMetadata().Name, cID, config.Annotations, networkOptions)
+      err = ds.network.SetUpPod(config.GetMetadata().Namespace, config.GetMetadata().Name, cID, config.Annotations, networkOptions)
 
 }
 ```
 github.com/kubernetes /pkg/kubelet/dockershim/network/plugins.go
 ```
-func (pm \*PluginManager) SetUpPod(podNamespace, podName string, id kubecontainer.ContainerID, annotations, options map[string]string) error {
+func (pm *PluginManager) SetUpPod(podNamespace, podName string, id kubecontainer.ContainerID, annotations, options map[string]string) error {
 
-  if err := pm.plugin.SetUpPod(podNamespace, podName, id, annotations, options); err != nil {
+      if err := pm.plugin.SetUpPod(podNamespace, podName, id, annotations, options); err != nil {
 
 }
 #调用plugin的SetUpPod方法，这里plugin是一个interface, 具体使用哪个plugin是由kubelet的启动参数–network-plugin决定的，我们配置的是cni
@@ -322,43 +322,43 @@ github.com/kubernetes/pkg/kubelet/dockershim/network/cni/cni.go
 ```
 获取配置文件
 
-func getDefaultCNINetwork(confDir string, binDirs []string) (\*cniNetwork, error) {
+func getDefaultCNINetwork(confDir string, binDirs []string) (*cniNetwork, error) {
 
-  files, err := libcni.ConfFiles(confDir, []string{&quot;.conf&quot;, &quot;.conflist&quot;, &quot;.json&quot;})
+      files, err := libcni.ConfFiles(confDir, []string{&quot;.conf&quot;, &quot;.conflist&quot;, &quot;.json&quot;})
 
-  switch {
+      switch {
 
-  case err != nil:
+      case err != nil:
 
-          return nil, err
+              return nil, err
 
-  case len(files) == 0:
+      case len(files) == 0:
 
-          return nil, fmt.Errorf(&quot;No networks found in %s&quot;, confDir)
+              return nil, fmt.Errorf(&quot;No networks found in %s&quot;, confDir)
 
-  }
+      }
 
-  sort.Strings(files)
+      sort.Strings(files)
 
 }
 
 配置pause容器的eth0接口的网络
 
-func (plugin \*cniNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID, annotations, options map[string]string) error {
+func (plugin *cniNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID, annotations, options map[string]string) error {
 
-  \_, err = plugin.addToNetwork(plugin.getDefaultNetwork(), name, namespace, id, netnsPath, annotations, options)
-
-}
-
-func (plugin \*cniNetworkPlugin) addToNetwork(network \*cniNetwork, podName string, podNamespace string, podSandboxID kubecontainer.ContainerID, podNetnsPath string, annotations, options map[string]string) (cnitypes.Result, error) {
-
-  res, err := cniNet.AddNetworkList(netConf, rt)
+      _, err = plugin.addToNetwork(plugin.getDefaultNetwork(), name, namespace, id, netnsPath, annotations, options)
 
 }
 
-func (c \*CNIConfig) AddNetworkList(list \*NetworkConfigList, rt \*RuntimeConf) (types.Result, error) {
+func (plugin *cniNetworkPlugin) addToNetwork(network *cniNetwork, podName string, podNamespace string, podSandboxID kubecontainer.ContainerID, podNetnsPath string, annotations, options map[string]string) (cnitypes.Result, error) {
 
-  prevResult, err = invoke.ExecPluginWithResult(pluginPath, newConf.Bytes, c.args(&quot;ADD&quot;, rt))
+      res, err := cniNet.AddNetworkList(netConf, rt)
+
+}
+
+func (c *CNIConfig) AddNetworkList(list *NetworkConfigList, rt *RuntimeConf) (types.Result, error) {
+
+      prevResult, err = invoke.ExecPluginWithResult(pluginPath, newConf.Bytes, c.args(&quot;ADD&quot;, rt))
 
 }
 ```
@@ -419,17 +419,17 @@ docker run --net=none -dt busybox
 
 docker inspect -f &#39;{{ .State.Pid }}&#39;  9d626be0
 
-export CNI\_COMMAND=ADD
+export CNI_COMMAND=ADD
 
-export CNI\_IFNAME=eth0
+export CNI_IFNAME=eth0
 
-export CNI\_CONTAINERID=9d626be087590021d57db74a164922ad1a565830cce89e6c039ca9c2d2ea55b4
+export CNI_CONTAINERID=9d626be087590021d57db74a164922ad1a565830cce89e6c039ca9c2d2ea55b4
 
-export CNI\_PATH=/opt/cni/bin/
+export CNI_PATH=/opt/cni/bin/
 
-export CNI\_NETNS=/proc/5705/ns/net
+export CNI_NETNS=/proc/5705/ns/net
 
-/opt/cni/bin/calico \&lt; /etc/cni/net.d/10-calico.conflist
+/opt/cni/bin/calico < /etc/cni/net.d/10-calico.conflist
 ```
 此示例显示了如何使用特定配置（10-calico.conflist）将某个插件（calico）应用于给定容器（9d626be08）。请注意，虽然最初所有配置参数都作为环境变量传入，但现在更多的是使用（JSON）配置文件。
 
