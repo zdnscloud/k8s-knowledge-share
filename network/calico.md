@@ -100,7 +100,7 @@ calico支持以kubernetes为存储后端，表示直接使用k8s api存取数据
 
 ### BGP Route Reflector (BIRD)
 
-非必须
+非必要
 
 通常是在Internet中使用这样的组件充当BGP客户端连接的中心点，从而防止它们需要与群集中的每个BGP客户端进行通信。为了实现冗余，也可以同时部署多个BGP Route Reflector服务。Route Reflector仅仅是协助管理BGP网络，并没有endpoint数据会通过它们。
 
@@ -112,7 +112,7 @@ BGP Route Reflector负责以下任务：
 
 ### Caclictl
 
-非必要。
+非必要
 
 Calico网络命令行工具，允许从命令行界面配置实现高级策略和网络
 
