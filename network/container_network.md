@@ -281,11 +281,13 @@ Docker Libnetwork的优势就是原生，而且和Docker容器生命周期结合
 
   ![""](pictures/k8s-docker.png)
 
- K8S中每个Pod在创建时都是先创建一个pause容器，业务容器与pause容器使用同一个网络名称空间。docker inspect $ID 会发现业务容器的网络模式是container，而pause容器的网络模式是none，因为k8s使用了cni，具体的容器网卡、IP、路由等信息是有cni配置的
+ K8S中每个Pod在创建时都是先创建一个pause容器，业务容器与pause容器使用同一个网络名称空间。
+ 
+ docker inspect $ID 会发现业务容器的网络模式是container，而pause容器的网络模式是none，因为k8s使用了cni，具体的容器网卡、IP、路由等信息是有cni配置的
 
 ## Kubelet逻辑分析
 
-在Pod启动前，kubelet调用createPodSandbox来创建环境，包括为Pod设置网络（例如：分配IP）等。 当PodSandbox启动后，就可以分别创建/启动/停止/移除独立的容器。为了删除Pod，kubelet会在停止和移除所有容器前先停止和移除 PodSandbox。
+kubelet调用createPodSandbox来创建pause容器，并为其配置网络环境
 
 github.com/kubernetes/pkg/kubelet/kuberuntime/kuberuntime\_sandbox.go
 ```
@@ -324,7 +326,7 @@ github.com/kubernetes/pkg/kubelet/dockershim/network/cni/cni.go
 
 func getDefaultCNINetwork(confDir string, binDirs []string) (*cniNetwork, error) {
 
-      files, err := libcni.ConfFiles(confDir, []string{&quot;.conf&quot;, &quot;.conflist&quot;, &quot;.json&quot;})
+      files, err := libcni.ConfFiles(confDir, []string{.conf, .conflist, .json})
 
       switch {
 
@@ -334,7 +336,7 @@ func getDefaultCNINetwork(confDir string, binDirs []string) (*cniNetwork, error)
 
       case len(files) == 0:
 
-              return nil, fmt.Errorf(&quot;No networks found in %s&quot;, confDir)
+              return nil, fmt.Errorf(No networks found in %s, confDir)
 
       }
 
@@ -358,12 +360,11 @@ func (plugin *cniNetworkPlugin) addToNetwork(network *cniNetwork, podName string
 
 func (c *CNIConfig) AddNetworkList(list *NetworkConfigList, rt *RuntimeConf) (types.Result, error) {
 
-      prevResult, err = invoke.ExecPluginWithResult(pluginPath, newConf.Bytes, c.args(&quot;ADD&quot;, rt))
+      prevResult, err = invoke.ExecPluginWithResult(pluginPath, newConf.Bytes, c.args(ADD, rt))
 
 }
-```
 该函数会遍历plugin，根据cni的type在binDir中找到同名插件，返回该插件的全路径。最后执行ExecPluginWithResult函数，它将调用cni的二进制文件并传入newConf参数以及RuntimeConf和一个ADD参数，其中ADD代表给容器添加网络。
-
+```
 分析到这，kubelet的网络配置已经完成了，我们最终会看到kubelet在生成新pod的时候会先生成一个sandbox容器（pause），kubelet会根据pod的yaml信息和kubelet的cni参数配置生成一个cni runtime配置，最后调用cni插件完成docker容器的网络配置。
 
 ## CNI
