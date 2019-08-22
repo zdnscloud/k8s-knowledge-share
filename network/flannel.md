@@ -317,6 +317,7 @@ Vxlan是一种基于IP网络(L3)的基础上虚拟L2网络连接的解决方案�
 
 ## 数据流程图
 
+  ![""](pictures/flannel-vxlan.png)
 
 1：容器里发出数据包，经过容器网卡eth0，通过veth到达主机vethxxxx设备
 
@@ -334,11 +335,13 @@ Vxlan是一种基于IP网络(L3)的基础上虚拟L2网络连接的解决方案�
 
 ## 数据包内容格式
 
+  ![""](pictures/flannel-vxlan-1.png)
 
 # Host-gw
 
 ## 数据流程图
 
+  ![""](pictures/flannel-hostgw.png)
 
 ## 局限性
 
