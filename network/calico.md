@@ -387,13 +387,13 @@ spec:
 ```
 calicoctl apply –f ippool.yaml
 ### Pod固定IP
-** cni.projectcalico.org/ipAddrs
+#### **cni.projectcalico.org/ipAddrs**
 ```
 annotations:
   cni.projectcalico.org/ipAddrs
 ```
 指定一个要分配给Pod的IPv4和/或IPv6地址列表。 请求的IP地址将从Calico IPAM分配，并且必须存在于已配置的IP pool中。
-** cni.projectcalico.org/ipAddrsNoIpam
+#### **cni.projectcalico.org/ipAddrsNoIpam**
 ```
 annotations:
   cni.projectcalico.org/ipAddrsNoIpam
