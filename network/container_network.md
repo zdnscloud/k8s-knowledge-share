@@ -188,19 +188,23 @@ docker network inspect none命令可以查看none网络详细情况
 ## 自定义网络
 
 ### Bridge
+创建自定义网络
 
-docker network create --driver _network\_type network\_name_命令即可创建自定义网络。
+docker network create --driver network\_type network\_name
+
 其中--driver后面支持的类型有三种：bridge、macvlan、overlay
 
-docker network create my-bridge --driver bridge        #创建
+查看网络信息
 
-docker network inspect my-bridge                        #查看详情
+docker network inspect network\_name  
 
-brctl show 可以看到新建的网桥
+查看网桥
 
-  ![""](pictures/docker_bridge_4.jpg)
+brctl show
 
 在主机上可以看到两个网桥对应的路由信息
+
+  ![""](pictures/docker_bridge_4.jpg)
 
 创建容器，通过--network my-bridge加入这个网络，同处于my-bridge的容器间网络是互通的，网络信息与默认的bridge没有差别（依然SNAT出网和DNAT入网），但该网桥与其他网桥之间是不通的。这种方式适用于单节点
 
@@ -208,19 +212,19 @@ brctl show 可以看到新建的网桥
 
 Overlay 可以使得我们将报文在 IP 报文之上再次封装，VXLAN 技术为其核心，VXLAN是将以太网报文封装成UDP报文进行隧道传输，UDP目的端口为已知端口，源端口可按流分配，标准5元组方式有利于在IP网络转发过程中进行负载分担；隔离标识采用24比特来表示；未知目的、广播、组播等网络流量均被封装为组播转发。
 
-单机模式是无法创建overlay网络模型的，需要借助分部署存储（etcd或者编排系统），部署完etcd后需要配置docker指定etcd地址后重启docker。
+>   单机模式是无法创建overlay网络模型的，需要借助分部署存储（etcd或者编排系统），部署完etcd后需要配置docker指定etcd地址后重启docker。
 
 创建overlay 网络（只需在一个节点执行）
+
 Docker network create -d overlay my-overlay
 
 在两个主机分别创建容器，使用--network my-overlay加入overlay网络，可以看到容器有两块网卡，eth1为走普通NAT模式，eth0 是 overlay 网段上分配的IP地址，也就是它走的是 overlay 网络，它的 MTU 是 1450 而不是 1500。
 
 docker 会为每个 overlay 网络创建一个独立的 network namespace，其中会有一个 linux bridge br0， veth pair 一端连接到容器中（即 eth0），另一端连接到 namespace 的 br0 上。br0 除了连接所有的 veth pair，还会连接一个 vxlan 设备，用于与其他 host 建立 vxlan tunnel。容器之间的数据就是通过这个 tunnel 通信的。
-
+```
 ln -s /var/run/docker/netns/ /var/run/netns
-
 ip netns
-
+```
 可以看到两个 host 上有一个相同的 namespace
 
 ip netns exec 1-625e8bbfff brctl show查看 namespace 中的 br0 上的设备
@@ -287,7 +291,7 @@ github.com/kubernetes/pkg/kubelet/kuberuntime/kuberuntime\_sandbox.go
 ```
 func (m \*kubeGenericRuntimeManager) createPodSandbox(pod \*v1.Pod, attempt uint32) (string, string, error) {
 
-podSandBoxID, err := m.runtimeService.RunPodSandbox(podSandboxConfig, runtimeHandler)
+  podSandBoxID, err := m.runtimeService.RunPodSandbox(podSandboxConfig, runtimeHandler)
 
 }
 ```
@@ -295,11 +299,11 @@ github.com/kubernetes/pkg/kubelet/dockershim/docker\_sandbox.go
 ```
 func (ds \*dockerService) RunPodSandbox(ctx context.Context, r \*runtimeapi.RunPodSandboxRequest) (\*runtimeapi.RunPodSandboxResponse, error) {
 
-err = ds.client.StartContainer(createResp.ID)
+  err = ds.client.StartContainer(createResp.ID)
 
-#DNS配置：通过docker inspecft查看容器信息，然后再重写容器位于宿主机的resolv文件
+  #DNS配置：通过docker inspecft查看容器信息，然后再重写容器位于宿主机的resolv文件
 
-err = ds.network.SetUpPod(config.GetMetadata().Namespace, config.GetMetadata().Name, cID, config.Annotations, networkOptions)
+  err = ds.network.SetUpPod(config.GetMetadata().Namespace, config.GetMetadata().Name, cID, config.Annotations, networkOptions)
 
 }
 ```
@@ -307,7 +311,7 @@ github.com/kubernetes /pkg/kubelet/dockershim/network/plugins.go
 ```
 func (pm \*PluginManager) SetUpPod(podNamespace, podName string, id kubecontainer.ContainerID, annotations, options map[string]string) error {
 
-if err := pm.plugin.SetUpPod(podNamespace, podName, id, annotations, options); err != nil {
+  if err := pm.plugin.SetUpPod(podNamespace, podName, id, annotations, options); err != nil {
 
 }
 #调用plugin的SetUpPod方法，这里plugin是一个interface, 具体使用哪个plugin是由kubelet的启动参数–network-plugin决定的，我们配置的是cni
@@ -320,21 +324,21 @@ github.com/kubernetes/pkg/kubelet/dockershim/network/cni/cni.go
 
 func getDefaultCNINetwork(confDir string, binDirs []string) (\*cniNetwork, error) {
 
- files, err := libcni.ConfFiles(confDir, []string{&quot;.conf&quot;, &quot;.conflist&quot;, &quot;.json&quot;})
+  files, err := libcni.ConfFiles(confDir, []string{&quot;.conf&quot;, &quot;.conflist&quot;, &quot;.json&quot;})
 
-switch {
+  switch {
 
-case err != nil:
+  case err != nil:
 
-        return nil, err
+          return nil, err
 
-case len(files) == 0:
+  case len(files) == 0:
 
-        return nil, fmt.Errorf(&quot;No networks found in %s&quot;, confDir)
+          return nil, fmt.Errorf(&quot;No networks found in %s&quot;, confDir)
 
-}
+  }
 
-sort.Strings(files)
+  sort.Strings(files)
 
 }
 
@@ -342,19 +346,19 @@ sort.Strings(files)
 
 func (plugin \*cniNetworkPlugin) SetUpPod(namespace string, name string, id kubecontainer.ContainerID, annotations, options map[string]string) error {
 
- \_, err = plugin.addToNetwork(plugin.getDefaultNetwork(), name, namespace, id, netnsPath, annotations, options)
+  \_, err = plugin.addToNetwork(plugin.getDefaultNetwork(), name, namespace, id, netnsPath, annotations, options)
 
 }
 
 func (plugin \*cniNetworkPlugin) addToNetwork(network \*cniNetwork, podName string, podNamespace string, podSandboxID kubecontainer.ContainerID, podNetnsPath string, annotations, options map[string]string) (cnitypes.Result, error) {
 
- res, err := cniNet.AddNetworkList(netConf, rt)
+  res, err := cniNet.AddNetworkList(netConf, rt)
 
 }
 
 func (c \*CNIConfig) AddNetworkList(list \*NetworkConfigList, rt \*RuntimeConf) (types.Result, error) {
 
- prevResult, err = invoke.ExecPluginWithResult(pluginPath, newConf.Bytes, c.args(&quot;ADD&quot;, rt))
+  prevResult, err = invoke.ExecPluginWithResult(pluginPath, newConf.Bytes, c.args(&quot;ADD&quot;, rt))
 
 }
 ```
