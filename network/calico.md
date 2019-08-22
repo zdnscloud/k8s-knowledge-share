@@ -38,24 +38,15 @@ Calico 是一个基于BGP协议的网络互联解决方案。它是一个纯3层
 
 全互联模式，就是一个BGP Speaker需要与其它所有的BGP Speaker建立bgp连接(形成一个bgp mesh)。网络中bgp总连接数是按照O(n^2)增长的，有太多的BGP Speaker时，会消耗大量的连接。calico默认使用全互联的方式，扩展性比较差，只能支持小规模集群:
 
-say 50 nodes - although this limit is not setin stone and
+>	say 50 nodes - although this limit is not setin stone and
+>	Calico has been deployed with over 100 nodes in a full mesh topology
 
-Calico has been deployed with over 100 nodes in a full mesh topology
-
-可以打开/关闭全互联模式：
-
-calicoctl config set nodeTonodeMesh off
-
-calicoctl config set nodeTonodeMesh on
 
 #### BGP Speaker RR模式
 
 RR模式，就是在网络中指定一个或多个BGP Speaker作为Router Reflection，RR与所有的BGP Speaker建立BGP连接。每个BGP Speaker只需要与RR交换路由信息，就可以得到全网路由信息。RR则必须与所有的BGP Speaker建立BGP连接，以保证能够得到全网路由信息。
 
 在calico中可以通过Global Peer实现RR模式。
-
-Global Peer是一个BGP Speaker，需要手动在calico中创建，所有的node都会与Global peer建立BGP连接。
-
 关闭了全互联模式后，再将RR作为Global Peers添加到calico中，calico网络就切换到了RR模式，可以支撑容纳更多的node。calico中也可以通过node Peer手动构建BGP Speaker（也就是node）之间的BGP连接。node Peer就是手动创建的BGP Speaker，只有指定的node会与其建立连接。
 
 因此，可以为每一个node指定不同的BGP Peer，实现更精细的规划。
@@ -76,7 +67,6 @@ BGP客户端负责执行以下任务：
 
 默认所有的节点使用相同的 AS number 64512
 
-默认情况下，每个 calico 节点会和集群中其他所有节点建立 BGP peer 连接，也就是说这是一个 O(n^2) 的增长趋势。在集群规模比较小的情况下，这种模式是可以接受的，但是当集群规模扩展到百个节点、甚至更多的时候，这样的连接数无疑会带来很大的负担。为了解决集群规模较大情况下 BGP client 连接数膨胀的问题，calico 引入了 RR（Router Reflector） 的功能
 
 ### Confd
 
@@ -97,11 +87,11 @@ Felix是一个守护程序，它在每个提供endpoints资源的计算机上运
 - 编写ACLs，Felix还负责将ACLs编程到Linux内核中。 这些ACLs用于确保只能在endpoints之间发送有效的网络流量，并确保endpoints无法绕过Calico的安全措施。
 - 报告状态，Felix负责提供有关网络健康状况的数据。 特别是，它将报告配置其主机时发生的错误和问题。 该数据会被写入etcd，以使其对网络中的其他组件和操作才可见。
 
-其中可以配置只运行 Felix, 而不跑 BIRD 和 confd. 这样就没有路由分发(BGP)和配置变更. 只有当前主机的路由.
+>	其中可以配置只运行 Felix, 而不跑 BIRD 和 confd. 这样就没有路由分发(BGP)和配置变更. 只有当前主机的路由.
 
 ### Etcd
 
-非必要。
+非必要
 
 以分布式、一致和容错的方式存储Calico网络的数据
 
@@ -109,7 +99,7 @@ calico支持以kubernetes为存储后端，表示直接使用k8s api存取数据
 
 ### BGP Route Reflector (BIRD)
 
-非必须。
+非必须
 
 通常是在Internet中使用这样的组件充当BGP客户端连接的中心点，从而防止它们需要与群集中的每个BGP客户端进行通信。为了实现冗余，也可以同时部署多个BGP Route Reflector服务。Route Reflector仅仅是协助管理BGP网络，并没有endpoint数据会通过它们。
 
@@ -123,17 +113,17 @@ BGP Route Reflector负责以下任务：
 
 非必要。
 
-Calico网络命令行工具，允许从命令行界面配置实现高级策略和网络。
+Calico网络命令行工具，允许从命令行界面配置实现高级策略和网络
 
 ### Typha
 
-非必要。
+非必要
 
 可帮助Calico扩展到大量节点，而不会对Kubernetes API服务器造成过多的负担。它位于Felix（Calico的每主机代理）和API服务器之间，作为代理。如果群集中有超过50个Kubernetes节点，我们建议启用Typha。如果没有Typha，API服务器上的负载和Felix的CPU使用率会随着节点数量的增加而显着增加。在我们的测试中，超过100个节点，Felix和API服务器都使用了不可接受的CPU数量。
 
 ### Kube-controllers
 
-非必要。
+非必要
 
 包含多个监视器，主要用来监视k8s资源变化后调整calico相关数据，例如policy
 
@@ -154,7 +144,6 @@ Calico CNI插件是按照标准的[CNI配置规范](https://www.kubernetes.org.c
           },
   }
 }
-
 ```
 ### 通用配置
 
@@ -190,18 +179,17 @@ Calico CNI插件是按照标准的[CNI配置规范](https://www.kubernetes.org.c
 ### **Kubernetes Policy**
 
 如果希望使用Kubernetes NetworkPolicy功能，则必须在网络配置中设置策略类型。 只有一个支持的策略类型，k8s。
-
 ```
 "policy": {
               "type": "k8s"
           },
 ```
-
 使用type：k8s时，Calico CNI插件需要对所有命名空间中的Pods资源具有只读Kubernetes API访问权限。
 
 ### IPAM
+calico自带了calico-ipam插件，可灵活控制Pod、Namespace的IP分配
 
-使用CNI的host-local IPAM插件时，subnet字段允许使用一个特殊的值 &quot;usePodCidr&quot;（at the top-level or in a &quot;range&quot;）。 这告诉插件从Kubernetes API去获取Node.podCIDR字段，以确定自己要使用的子网。 Calico不使用网段范围的网关字段，因此不需要该字段，如果提供了则也将忽略该字段。
+如果使用host-local，subnet字段允许使用一个特殊的值 &quot;usePodCidr&quot;（at the top-level or in a &quot;range&quot;）。 这告诉插件从Kubernetes API去获取Node.podCIDR字段，以确定自己要使用的子网。 Calico不使用网段范围的网关字段，因此不需要该字段，如果提供了则也将忽略该字段。
 
 注意：usePodCidr只能用作子网字段的值，不能在rangeStart或rangeEnd中使用，因此如果子网设置为usePodCidr，则这些值无用。
 
@@ -210,7 +198,7 @@ Calico支持host-local IPAM插件的routes 字段，如下所示：
 - 如果没有routes字段，Calico将在pod中安装默认的0.0.0/0和/或::/0的路由规则（取决于pod是否具有IPv4和/或IPv6地址）。
 - 如果存在routes字段，则Calico将仅将routes字段中的路由规则添加到pod中。 由于Calico在pod中实现了点对点链接，因此不需要gw字段，如果存在则会忽略它。 Calico安装的所有路由都会将Calico的link-local IP作为下一跳。
 
-注：Calico3.6+版本，如果使用k8s datastore和host-local IPAM，必须在cni-node和cni-typha中加入环境变量USE\_POD\_CIDR=true。不然路由信息不会聚合。
+>	Calico3.6+版本，如果使用k8s datastore和host-local IPAM，必须在cni-node和cni-typha中加入环境变量USE\_POD\_CIDR=true。不然路由信息不会聚合。
 
 ## Calico
 
@@ -270,7 +258,6 @@ _, contVethMac, err := utils.DoNetworking(args, conf, result, logger, hostVethNa
 创建WorkloadEndpoint
 if _, err := utils.CreateOrUpdate(ctx, calicoClient, endpoint); err != nil {}
 }
-
 ```
 #### AddIPAM函数
 ```
@@ -310,9 +297,7 @@ func DoNetworking(
 
 5：然后就可以创建endpoint的了，先装配各种参数，然后通过calicoClient.WorkloadEndpoints().Apply(endpoint)创建这个endpoint。一个calico的endpoint代表一个网络点，可以简单理解为网卡的别名，就是kubernetes有了pod，但一个pod有多个endpoint一样，解耦。一个calico的endpoint包含一些metadata信息
 
-注：
-
-只有calico-ipam支持固定IP
+>	只有calico-ipam支持固定IP
 
 ## calico-ipam
 
@@ -375,19 +360,16 @@ AutoAllocateBlocks: 自动分配地址块，如果基于 host affine 的地址�
 
 默认的掩码是26（64个可用IP），如果想自定义，步骤如下
 
-1：
-
-Calico-node Pod设置：
-
+1：Calico-node Pod设置：
 ```
 - name: NO_DEFAULT_POOLS
   value: "true"
 ```
+并取消CALICO\_IPV4POOL\_CIDR和CALICO\_IPV6POOL\_CIDR参数设置。
 
-并取消CALICO\_IPV4POOL\_CIDR/CALICO\_IPV6POOL\_CIDR参数设置。官方说后续会增加一个环境变量名CALICO\_IPV4POOL\_BLOCK\_SIZE，但目前还没有
+官方说后续会增加一个环境变量名CALICO\_IPV4POOL\_BLOCK\_SIZE，但目前还没有
 
-2：
-
+2：修改ippool
 ```
 calicoctl get ipPool
 	cat ippool.yaml 
@@ -401,8 +383,8 @@ spec:
   cidr: 10.42.0.0/16
   ipipMode: Always
   natOutgoing: true
-	calicoctl apply –f ippool.yaml
 ```
+calicoctl apply –f ippool.yaml
 ### Pod固定IP
 
 #### **cni.projectcalico.org/ipAddrs**
@@ -436,19 +418,17 @@ spec:
 #### **cni.projectcalico.org/ipv4pools**
 
 已配置的IPv4 pool列表，可从中选择Pod的地址。
-
+```
 annotations:
-
-cni.projectcalico.org/ipv4pools: &#39;[&quot;zdns-ipv4-ippool&quot;]&#39;
-
+  cni.projectcalico.org/ipv4pools: &#39;[&quot;zdns-ipv4-ippool&quot;]&#39;
+```
 #### **cni.projectcalico.org/ipv6pools**
 
 已配置的IPv6 pool列表，可从中选择Pod的地址。
-
+```
 annotations:
-
-cni.projectcalico.org/ipv6pools: &#39;[&quot;zdns-ipv6-ippool&quot;]&#39;
-
+  cni.projectcalico.org/ipv6pools: &#39;[&quot;zdns-ipv6-ippool&quot;]&#39;
+```
 #### 注意事项
 
 - 如果提供上面这样的配置，这些指定的IP pool将覆盖CNI基础配置中指定的任何IP pool资源。
