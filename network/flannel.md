@@ -1,7 +1,23 @@
 # CNI-Flannel原理解读
 [https://github.com/containernetworking/plugins](https://github.com/containernetworking/plugins)
+## 简介
+Flannel是一种基于overlay网络的跨主机容器网络解决方案，也就是将TCP数据包封装在另一种网络包里面进行路由转发和通信，
 
+Flannel是CoreOS开发,专门用于docker多机互联的一个工具,让集群中的不同节点主机创建的容器都具有全集群唯一的虚拟ip地址
 
+Flannel使用go语言编写
+
+## 工作模式
+### vxlan模式
+基于IP网络(L3)的基础上虚拟L2网络连接的解决方案
+
+分为两种模式：
+-	vxlan模式（纯vxlan）
+-	DirectRouting模式（混合模式）：同子网路由采用host-gw，跨子网路由采用vxlan
+### host-gw模式
+通过直接路由的方式传送虚拟网络报文。求所有宿主机同一个二层网络中
+### udp模式
+与vxlan都是采用封装数据包的方式传输，但其采用用户态程序封包，比vxlan的内核封包性能降低不少，不建议使用
 ## 配置文件示例
 cat 10-flannel.conflist
 ```
