@@ -61,7 +61,7 @@ linux通过命名空间管理进程号，同一个进程，在不同的命名空
 
 ### Cgroup
 
-cgroup是为了对一组进程进行统一的资源监控和限制，包含了pid、cpu和memory这三个常用的subsystem，目前还没有被 docker 采用。相信在不久的将来各种容器也会添加对 Cgroup namespace 的支持
+cgroup是为了对一组进程进行统一的资源监控和限制，包含了pid、cpu和memory这三个常用的subsystem
 
 从版本号为 3.8 的内核开始，/proc/[pid]/ns 目录下会包含进程所属的 namespace 信息，使用下面的命令可以查看当前进程所属的 namespace 信息：
 
