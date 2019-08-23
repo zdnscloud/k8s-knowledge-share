@@ -84,7 +84,7 @@ Docker 允许你在容器内运行应用程序， 使用 docker run 命令来在
   > -p 4000:80 :指定端口 
   > 此时在浏览器中输入http://localhost:4000 可看到运行的效果；或者输入`curl -4 http://localhost:4000`
 
-  * 查看image
+  * 查看容器信息
   ` docker container ls`  
   
   * 标记图像格式 
