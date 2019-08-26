@@ -6,6 +6,13 @@ macvlan是Linux操作系统内核提供的网络虚拟化方案之一，更准�
 
 macvlan 下的虚拟机或者容器网络和主机在同一个网段中，共享同一个广播域。macvlan 和 bridge 比较相似，但因为它省去了 bridge 的存在，所以配置和调试起来比较简单，而且效率也相对高。除此之外，macvlan 自身也完美支持 VLAN。
 
+可以通过下面的命令判断内核是否支持
+```
+modprobe macvlan
+lsmod | grep macvlan
+  macvlan    19046    0
+```
+
 ## 特点
 
 - Macvlan比bridge更快
