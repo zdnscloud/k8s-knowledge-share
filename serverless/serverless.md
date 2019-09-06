@@ -23,6 +23,10 @@
 应用因为必需与基础架构团队合作才能启动和运行，所以很难持续构建应用。
 作为开发人员，我们一直在寻找这些问题的解决方案，而`serverless`正是应运而生。
 
+## Serverless 历史
+
+![](images/serverless-history.webp)
+
 ## Severless Coumputing
 
 **Serverless Coumputing**（简称为 `serverless`）是一种执行模型，其中云提供商（AWS，Azure或Google Cloud）负责通过动态分配资源来执行一段代码。
@@ -42,6 +46,12 @@
 虽然`serverless`将底层基础架构从开发人员手中抽象出来，但`server`仍然参与执行我们的`function`。
 
 由于代码将作为单独的函数执行，因此我们需要注意一些事项。
+
+## 云计算发展看 `serverless`
+
+首先，抛一个总结性观点：云计算的发展从IaaS，PaaS，SaaS，到最新的BaaS，FasS，在这个趋势中serverless(去服务器化）越来越明显，而Serveless的完善带给云计算将会是一次完美进化！
+
+![cloud-evolution](images/cloud-evolution.webp)
 
 ## Microservices
 
