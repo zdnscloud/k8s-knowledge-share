@@ -1,4 +1,4 @@
-# `Serverless` and `Lambda`
+# `Serverless` 
 
 ## What is `Serverless`
 
