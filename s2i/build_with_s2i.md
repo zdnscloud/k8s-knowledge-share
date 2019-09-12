@@ -66,8 +66,9 @@ s2i build /root/s2i-php-test-app centos/php-72-centos7 my-test-app
 docker run --rm -p 8080:8080 my-test-app
 
 ```
+#### 配置运行时参数
 
-给镜像配置以下环境变量可以作用于`php.ini`:
+- 给镜像配置以下环境变量可以作用于`php.ini`:
 * **ERROR_REPORTING**
   * Informs PHP of which errors, warnings and notices you would like it to take action for
   * Default: E_ALL & ~E_NOTICE
@@ -115,7 +116,7 @@ docker run --rm -p 8080:8080 my-test-app
   * Path that defines the DocumentRoot for your application (ie. /public)
   * Default: /
 
-给镜像配置以下环境变量可以作用于`opcache.ini`:
+- 给镜像配置以下环境变量可以作用于`opcache.ini`:
 * **OPCACHE_MEMORY_CONSUMPTION**
   * The OPcache shared memory storage size in megabytes
   * Default: 128
@@ -123,7 +124,7 @@ docker run --rm -p 8080:8080 my-test-app
   * How often to check script timestamps for updates, in seconds. 0 will result in OPcache checking for updates on every request.
   * Default: 2
 
-以下配置环境变量作用于Apache服务，运行于Apache [MPM prefork](https://httpd.apache.org/docs/2.4/mod/mpm_common.html) 模式:
+- 以下配置环境变量作用于Apache服务，运行于Apache [MPM prefork](https://httpd.apache.org/docs/2.4/mod/mpm_common.html) 模式:
 
 * **HTTPD_START_SERVERS**
   * The [StartServers](https://httpd.apache.org/docs/2.4/mod/mpm_common.html#startservers)
@@ -136,14 +137,14 @@ docker run --rm -p 8080:8080 my-test-app
   * Default: 256 (this is automatically tuned by setting Cgroup limits for the container using this formula:
     `TOTAL_MEMORY / 15MB`. The 15MB is average size of a single httpd process.
 
-以下配置环境变量作用于composer:
+- 以下配置环境变量作用于composer:
 
-    * **COMPOSER_MIRROR**
-      * Adds a custom composer repository mirror URL to composer configuration. Note: This only affects packages listed in composer.json.
-    * **COMPOSER_INSTALLER**
-      * Overrides the default URL for downloading Composer of https://getcomposer.org/installer. Useful in disconnected environments.
-    * **COMPOSER_ARGS**
-      * Adds extra arguments to the `composer install` command line (for example `--no-dev`).
+* **COMPOSER_MIRROR**
+  * Adds a custom composer repository mirror URL to composer configuration. Note: This only affects packages listed in composer.json.
+* **COMPOSER_INSTALLER**
+  * Overrides the default URL for downloading Composer of https://getcomposer.org/installer. Useful in disconnected environments.
+* **COMPOSER_ARGS**
+  * Adds extra arguments to the `composer install` command line (for example `--no-dev`).
 
 
 代码目录配置
