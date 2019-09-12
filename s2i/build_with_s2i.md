@@ -48,6 +48,8 @@ $ hack/build-go.sh
 s2i [source dir] [builder image] [built image name]
 ```
 
+可用的builder镜像源码可以在 [Software Collection](https://github.com/sclorg) 找到
+
 ### 创建镜像PHP项目镜像
 
 PHP builder 镜像
@@ -167,4 +169,63 @@ docker run --rm -p 8080:8080 my-test-app
 * **.s2i/environment**
 
   也可以用于配置环境变量
+
+
+### 创建nodejs项目镜像
+
+可用builder镜像
+
+- centos/nodejs-10-centos7
+- centos/nodejs-8-centos7
+- centos/nodejs-6-centos7
+
+#### 服务启动
+
+默认会调用 `npm start` 来启动服务
+
+当`DEV_MODE=true`时，默认会调用`nodemon <main attribute in package.json>`,来启动服务，如果失败再调用，`npm start` 来启动服务
+
+#### 可配置环境变量
+
+
+**`NODE_ENV`**
+       NodeJS runtime mode (default: "production")
+
+**`DEV_MODE`**
+       When set to "true", `nodemon` will be used to automatically reload the server while you work (default: "false"). Setting `DEV_MODE` to "true" will change the `NODE_ENV` default to "development" (if not explicitly set).
+
+**`NPM_RUN`**
+       Select an alternate / custom runtime mode, defined in your `package.json` file's [`scripts`](https://docs.npmjs.com/misc/scripts) section (default: npm run "start"). These user-defined run-scripts are unavailable while `DEV_MODE` is in use.
+
+**`HTTP_PROXY`**
+       Use an npm proxy during assembly
+
+**`HTTPS_PROXY`**
+       Use an npm proxy during assembly
+
+**`NPM_MIRROR`**
+       Use a custom NPM registry mirror to download packages during the build process
+
+
+
+### 创建go项目镜像
+
+可用builder镜像
+
+- centos/go-toolset-7-centos7
+
+#### 配置运行时参数
+
+* **IMPORT_URL**
+
+指定应用的导入URL，如 `github.com/someorg/somerepo`
+
+* **INSTALL_URL**
+
+如果`main.go`不在代码目录下时，指定build目录,如 `github.com/someorg/somerepo/somefolder`
+
+
+### 创建java项目镜像
+
+由于java项目的多样性，建议进行定制
 
