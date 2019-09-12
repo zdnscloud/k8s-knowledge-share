@@ -164,5 +164,7 @@ docker run --rm -p 8080:8080 my-test-app
   specifies how application requests should be handled. The **.htaccess** file needs to be located at the root
   of the application source.
 
+* **.s2i/environment**
 
+  也可以用于配置环境变量
 
