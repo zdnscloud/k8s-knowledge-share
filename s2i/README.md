@@ -33,7 +33,7 @@ S2I提供了一套镜像模版来对多种语言和矿建进行构建
 #### 安装`s2i`命令
 
 ```shell
-curl -sSL https://github.com/openshift/source-to-image/releases/download/v1.1.14/source-to-image-v1.1.14-874754de-linux-amd64.tar.gz | tar zxf - -C /usr/local/bin/ './s2i'
+curl -sSL https://github.com/zdnscloud/s2i/archive/v1.0.tar.gz | tar zxf - -C /usr/local/bin/ './s2i'
 ```
 
 #### 创建`s2i builder`模版
