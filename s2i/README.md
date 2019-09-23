@@ -33,7 +33,7 @@ S2I提供了一套镜像模版来对多种语言和矿建进行构建
 #### 安装`s2i`命令
 
 ```shell
-curl -sSL https://github.com/zdnscloud/s2i/archive/v1.0.tar.gz | tar zxf - -C /usr/local/bin/ './s2i'
+curl -sSL https://github.com/zdnscloud/s2i/releases/download/v1.0/s2i.tar.gz | tar zxf - -C /usr/local/bin/ s2i
 ```
 
 #### 创建`s2i builder`模版
