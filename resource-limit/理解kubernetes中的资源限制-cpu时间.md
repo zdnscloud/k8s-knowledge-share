@@ -97,7 +97,10 @@ $ kubectl get pods limit-test-5f5c7dc87d-8qtdx -o=jsonpath='{.spec.containers[0]
 map[limits:map[memory:100Mi] requests:map[memory:100Mi]]
 ```
 
-您将立即注意到，除了我们设置的限制之外，pod现在还有一个内存请求。当您设置了一个限制，而不是一个请求时，kubernetes将默认该请求设置为该限制。如果你从调度器的角度来考虑，这是有意义的。我们将在下面详细讨论这个请求。一旦pod启动，我们可以看到docker是如何配置容器和进程的内存cgroup的:
+* 您将立即注意到，除了我们设置的限制之外，pod现在还有一个内存请求。当您设置了一个限制，而不是一个请求时，kubernetes将默认该限制设置为该请求。
+* pod创建之前，**LimitRange admission controller**会检查request和limits进行设置。
+
+如果你从调度器的角度来考虑，这是有意义的。我们将在下面详细讨论这个请求。一旦pod启动，我们可以看到docker是如何配置容器和进程的内存cgroup的:
 
 ```
 $ docker ps | grep busy | cut -d' ' -f1
@@ -322,6 +325,15 @@ cpu.stat：统计信息，包含nr_periods（表示经历了几个cfs_period_us�
 按权重比例设定CPU的分配
 cpu.shares：设定一个整数（必须大于等于2）表示相对权重，最后除以权重总和算出相对比例，按比例分配CPU时间。（如cgroup A设置100，cgroup B设置300，那么cgroup A中的task运行25%的CPU时间。对于一个4核CPU的系统来说，cgroup A 中的task可以100%占有某一个CPU，这个比例是相对整体的一个值。）
 ```
+
+查看系统ticks：
+
+```
+cat /boot/config-`uname -r` | grep '^CONFIG_HZ='
+CONFIG_HZ=1000
+```
+
+系统每秒有多少个软中断。
 
 ### 测试CPU限制
 
