@@ -1,4 +1,4 @@
-#理解kubernetes中的资源限制：CPU、MEM
+#c的理解kubernetes中的资源限制：CPU、MEM
 
 资源限制是您提供给kubernetes的操作参数，它告诉kubernetes关于工作负载的两件重要事情:正常运行所需的资源;以及它所能消耗的最大资源。第一个是调度程序的关键输入，它使调度程序能够选择运行pod的正确节点。第二点对kubelet很重要，kubelet是每个节点上负责pod健康状况的守护进程。
 
@@ -180,7 +180,7 @@ map[requests:map[cpu:50m]]
 ```
 $ docker ps | grep busy | cut -d' ' -f1
 f2321226620e
-$ docker inspect f2321226620e --format '{{.HostConfig.Cpushares}}'
+$ docker inspect f2321226620e --format '{{.HostConfig.CpuShares}}'
 51
 ```
 
@@ -200,7 +200,7 @@ drwxr-xr-x 4 root root 0 Oct 28 23:19 ..
 -rw-r--r-- 1 root root 0 Oct 28 23:19 cpu.shares
 ```
 
-容器属性**HostConfig.Cpushares**映射到cgroup的属性**cpu.shares**，我们来看一下:
+容器属性**HostConfig.CpuShares**映射到cgroup的属性**cpu.shares**，我们来看一下:
 
 ```
 $ sudo cat /sys/fs/cgroup/cpu,cpuacct/kubepods/burstable/podb5c03ddf-db10-11e8-b1e1-42010a800070/64b5f1b636dafe6635ddd321c5b36854a8add51931c7117025a694281fb11444/cpu.shares
@@ -227,11 +227,11 @@ map[limits:map[cpu:100m] requests:map[cpu:50m]]
 ```
 $ docker ps | grep busy | cut -d' ' -f1
 f2321226620e
-$ docker inspect 472abbce32a5 --format '{{.HostConfig.Cpushares}} {{.HostConfig.CpuQuota}} {{.HostConfig.CpuPeriod}}'
+$ docker inspect 472abbce32a5 --format '{{.HostConfig.CpuShares}} {{.HostConfig.CpuQuota}} {{.HostConfig.CpuPeriod}}'
 51 10000 100000
 ```
 
-cpu request 存储在**HostConfig.Cpushares**。cpu限制由两个值表示:**HostConfig.CpuPeriod**和**HostConfig.CpuQuota**。这些docker容器配置属性映射到cpu的两个附加属性cpu,cpuacct cgroup: **cpu.cfs_period_us**和**cpu.cfs_quota_us**。让我们来看看这些:
+cpu request 存储在**HostConfig.CpuShares**。cpu限制由两个值表示:**HostConfig.CpuPeriod**和**HostConfig.CpuQuota**。这些docker容器配置属性映射到cpu的两个附加属性cpu,cpuacct cgroup: **cpu.cfs_period_us**和**cpu.cfs_quota_us**。让我们来看看这些:
 
 ```
 $ sudo cat /sys/fs/cgroup/cpu,cpuacct/kubepods/burstable/pod2f1b50b6-db13-11e8-b1e1-42010a800070/f0845c65c3073e0b7b0b95ce0c1eb27f69d12b1fe2382b50096c4b59e78cdf71/cpu.cfs_period_us
@@ -240,13 +240,13 @@ $ sudo cat /sys/fs/cgroup/cpu,cpuacct/kubepods/burstable/pod2f1b50b6-db13-11e8-b
 10000
 ```
 
-正如预期的那样，这些值被设置为与docker容器配置中指定的值相同。但是这两个属性的值是如何从pod中设置的cpu限制100m 中得到的呢?它们是如何实现这个限制的呢?答案在于cpu请求和cpu限制是使用两个独立的控制系统实现的。请求使用Cpushares系统，两者中较早的一个。Cpu份额将每个核心划分为1024个片，并保证每个进程将获得这些片的比例份额。如果有1024个片，并且有两个进程都设置cpu分享到512个，然后他们将各自得到大约一半的可用时间。然而，Cpushares系统不能强制执行上限。如果一个进程不使用它的CPU，另一个进程可以自由使用。
+正如预期的那样，这些值被设置为与docker容器配置中指定的值相同。但是这两个属性的值是如何从pod中设置的cpu限制100m 中得到的呢?它们是如何实现这个限制的呢?答案在于cpu请求和cpu限制是使用两个独立的控制系统实现的。请求使用CpuShares系统，两者中较早的一个。Cpu份额将每个核心划分为1024个片，并保证每个进程将获得这些片的比例份额。如果有1024个片，并且有两个进程都设置cpu分享到512个，然后他们将各自得到大约一半的可用时间。然而，CpuShares系统不能强制执行上限。如果一个进程不使用它的CPU，另一个进程可以自由使用。
 
 大约在2010年，谷歌和其他人注意到这可能会导致问题。作为回应，增加了第二个更强大的系统:cpu带宽控制。带宽控制系统定义了一个周期，通常是1/10秒，或100,000微秒，以及一个配额，它表示允许进程在cpu上运行的时间段内的最大片数。在本例中，我们要求pod的cpu限制为100m。这是一个内核的100/1000，或者说cpu时间的100000微秒中的10000。因此，在进程的**cpu,cpuacct** cgroup上，我们的limit请求转换为设置**cpu.cfs_period_us=100000**和**cpu.cfs_quota_us=10000**。顺便说一下，这些名称中的cfs代表完全公平的调度程序，它是默认的linux cpu调度程序。还有一个实时调度程序，它具有自己对应的配额值。
 
-我们已经看到，在kubernetes中设置cpu请求最终会设置cgroup属性**cpu.shares** ，并且通过设置不同的系统**cpu.cfs_period_us** 和 **cpu.cfs_quota_us**来参与cpu限制。与内存限制一样，请求主要对调度程序有用，调度程序使用它查找至少具有那么多可用Cpushares的节点。与内存请求不同，设置cpu请求还会在cgroup上设置一个属性，帮助内核将该数量的片分配给进程。对极限的处理也与内存不同。超过内存限制使您的容器进程成为oom杀死的候选对象，而您的进程基本上不能超过设置的cpu配额，并且永远不会因为试图使用超过分配的cpu时间而被驱逐。系统在调度程序上强制执行配额，这样进程就会在限制时被节流。
+我们已经看到，在kubernetes中设置cpu请求最终会设置cgroup属性**cpu.shares** ，并且通过设置不同的系统**cpu.cfs_period_us** 和 **cpu.cfs_quota_us**来参与cpu限制。与内存限制一样，请求主要对调度程序有用，调度程序使用它查找至少具有那么多可用CpuShares的节点。与内存请求不同，设置cpu请求还会在cgroup上设置一个属性，帮助内核将该数量的片分配给进程。对极限的处理也与内存不同。超过内存限制使您的容器进程成为oom杀死的候选对象，而您的进程基本上不能超过设置的cpu配额，并且永远不会因为试图使用超过分配的cpu时间而被驱逐。系统在调度程序上强制执行配额，这样进程就会在限制时被节流。
 
-如果不将这些属性设置在容器上，或者将它们设置为不准确的值，会发生什么?与内存一样，如果您设置了一个限制，但是没有设置请求，kubernetes将默认将请求设置为该限制。如果您非常清楚您的工作负载需要多少cpu时间，这是可以的。设置一个没有限制的请求怎么样?在这种情况下kubernetes能够准确地安排你的POD,内核将确保它至少获取到请求的时间片,但您的进程不会阻止使用更多的CPU。既不设置请求也不设置限制是最坏的情况:调度器不知道容器需要什么，进程对Cpushares的使用是无限制的，这可能会对节点产生负面影响。最后一件事是:确保名称空间中的默认限制。
+如果不将这些属性设置在容器上，或者将它们设置为不准确的值，会发生什么?与内存一样，如果您设置了一个限制，但是没有设置请求，kubernetes将默认将请求设置为该限制。如果您非常清楚您的工作负载需要多少cpu时间，这是可以的。设置一个没有限制的请求怎么样?在这种情况下kubernetes能够准确地安排你的POD,内核将确保它至少获取到请求的时间片,但您的进程不会阻止使用更多的CPU。既不设置请求也不设置限制是最坏的情况:调度器不知道容器需要什么，进程对CpuShares的使用是无限制的，这可能会对节点产生负面影响。最后一件事是:确保名称空间中的默认限制。
 
 ##默认的限制
 
@@ -303,7 +303,7 @@ spec:
 
 这就结束了对kubernetes中CPU资源限制的研究。如果您有兴趣阅读关于使用资源限制和默认值、linux cgroups或内存管理的更多信息，我在下面提供了一些关于这些主题的更详细信息的链接。
 
-##操作系统进程调度
+##操作系统进程限制
 
 ![img](https://img-blog.csdnimg.cn/20181228112738261.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3pob25nbGluemhhbmc=,size_16,color_FFFFFF,t_70)
 
