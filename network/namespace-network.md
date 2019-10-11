@@ -47,6 +47,7 @@
     ip netns exec net-test ip link set dev veth-2 up
 > 给两张网卡配置了IP后，会在各自的network namespace中生成一条路由，目的地址 10.0.0.0/24网络的IP包分别从veth-1和veth-2发出。现在net-test这个network namespace有了自己的网卡、IP地址、路由表等信息，就相当于成了一台小型的“虚拟机”了。相互之间能够ping通
  
+ 
  ### 两个namespace之间
 1: 创建两个network namespace ns1、ns2
 
@@ -71,6 +72,8 @@
     ip netns exec ns2 ip addr add 10.0.0.2/24 dev veth-b
 6: 验证连通
 
+  ![""](pictures/namespace-namespace.png)
+
 ### 更多的namespace之间
  >  引入网桥，就如同docker网络一样，Docker是使用Linux namespace技术进行资源隔离的，网络也是如此。当用默认网络模式（bridge模式）启动一个Docker容器时，一定是在主机上新建了一个Linux network namespace。
  
@@ -92,7 +95,8 @@
 
     ip netns ls
     ip netns exec test1 ip addr
-    
+ 
+   ![""](pictures/muliti-namespace.png)
     
  ### pipework  将docker容器配置到本地网络中
 1: 下载pipework
@@ -116,3 +120,4 @@
 
 > pipework其实还有其它的很多功能，比如还支持open vswitch、支持dhcp获取容器的IP等等
  
+  ![""](pictures/pipenetwork.png)
