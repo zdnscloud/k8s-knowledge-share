@@ -73,21 +73,6 @@ $ ll /proc/$$/ns
 
 其次，在 /proc/[pid]/ns 里放置这些链接文件的另外一个作用是，一旦这些链接文件被打开，只要打开的文件描述符(fd)存在，那么就算该 namespace 下的所有进程都已结束，这个 namespace 也会一直存在，后续的进程还可以再加入进来。
 
-## 操作
-
-与命名空间相关的API主要有三个：clone，setns和unshare，这三个API都是针对一个进程来操作的
-
-### Clone
-
-clone方法会创建一个新的子进程，然后让子进程加入新的namespace，而当前进程保持不变。
-
-### Setns
-
-setns方法用于将当前进程加入到已有的namespace中。
-
-### Unshare
-
-unshare方法使当前进程退出指定类型的namespace，并加入到新创建的namespace（相当于创建并加入新的namespace）
 
 # Docker网络
 
