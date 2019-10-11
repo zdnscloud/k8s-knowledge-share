@@ -97,7 +97,24 @@
     ip netns exec test1 ip addr
  
    ![""](pictures/muliti-namespace.png)
+   
+ ### 共享主机网络（docker host网络模型）
+ 1: 启动一个名为test2的容器，使用host网络
+ 
+    docker run -itd --name test2 busybox
+ 2: 用docker inspect查看test1容器的PID
+  
+    docker inspect  --format '{{.State.Pid}}' test2
+ 3: 查看容器的namspace
+ 
+    readlink /proc/4400/ns/net
     
+  4: 查看当前shell使用的namespace
+  
+    readlink  /proc/$$/ns/net
+   
+  会发现这俩namepsace是一样的，说明使用了同一个网络名称空间，即主机网络
+ 
  ### pipework  将docker容器配置到本地网络中
 1: 下载pipework
 
