@@ -8,7 +8,7 @@
 > 
 
 #### 简述 OCI
-	OCI(Open Container Initiative)是由多家公司共同成立的项目，并由linux基金会进行管理，致力于container runtime的标准的制定和runc的开发等工作。
+OCI(Open Container Initiative)是由多家公司共同成立的项目，并由linux基金会进行管理，致力于container runtime的标准的制定和runc的开发等工作。
 	
 OCI项目计划：
 * Runtime: runc (or any OCI compliant runtime) and OCI runtime tools to generate the spec
@@ -18,15 +18,15 @@ OCI项目计划：
 * Builds: Builds are supported via Buildah.
 * Conmon: Conmon is a tool for monitoring OCI runtimes.
 >
-	> * container runtime: 主要负责的是容器的生命周期的管理。oci的runtime spec标准中对于容器的状态描述，以及对于容器的创建、删除、查看等操作进行了定义。
-	>
-	> * runc: 是对于OCI标准的一个参考实现，是一个可以用于创建和运行容器的CLI(command-line interface)工具。runc直接与容器所依赖的cgroup/linux kernel等进行交互，负责为容器配置cgroup/namespace等启动容器所需的环境，创建启动容器的相关进程。
-	>
-	为了兼容oci标准，docker也做了架构调整。将容器运行时相关的程序从docker daemon剥离出来，形成了containerd。Containerd向docker提供运行容器的API，二者通过grpc进行交互。containerd最后会通过runc来实际运行容器。
+> * container runtime: 主要负责的是容器的生命周期的管理。oci的runtime spec标准中对于容器的状态描述，以及对于容器的创建、删除、查看等操作进行了定义。
+>
+> * runc: 是对于OCI标准的一个参考实现，是一个可以用于创建和运行容器的CLI(command-line interface)工具。runc直接与容器所依赖的cgroup/linux kernel等进行交互，负责为容器配置cgroup/namespace等启动容器所需的环境，创建启动容器的相关进程。
+>
+为了兼容oci标准，docker也做了架构调整。将容器运行时相关的程序从docker daemon剥离出来，形成了containerd。Containerd向docker提供运行容器的API，二者通过grpc进行交互。containerd最后会通过runc来实际运行容器。
 
 ![](http://xuxinkun.github.io/img/docker-oci-runc-k8s/containerd.png)
 	
-	CRI-O为kubernetes提供了一个符合OCI兼容运行时的标准接口。runc是OCI运行时规范的参考实现。Kubernetes通过CRI-O调用runtC运行时，然后runC与Linux内核对话以运行容器。这绕过了对Docker守护程序的需要，并进行了容器化。使用CRI-O，不需要Docker守护程序让kubernetes集群运行容器。
+CRI-O为kubernetes提供了一个符合OCI兼容运行时的标准接口。runc是OCI运行时规范的参考实现。Kubernetes通过CRI-O调用runtC运行时，然后runC与Linux内核对话以运行容器。这绕过了对Docker守护程序的需要，并进行了容器化。使用CRI-O，不需要Docker守护程序让kubernetes集群运行容器。
 	
 ![](https://xuxinkun.github.io/img/docker-oci-runc-k8s/kubelet.png)
 	
