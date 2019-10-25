@@ -1,4 +1,4 @@
- ###  Podman 是什么？   
+###  Podman 是什么？   
 * [Podman](https://podman.io/)（Pod Manager）是功能齐全的容器引擎，它是一个简单的无守护程序工具。
 * 提供了与Docker-CLI相类似的命令行，可简化从其他容器引擎的过渡，并允许管理Pod，容器和映像。
 * 大多数Podman命令可以作为普通用户运行，而无需额外的权限。
@@ -7,28 +7,28 @@
 > Libpod 是一个用于创建并运行 OCI 容器 pod 的库和工具，支持 Fedora、RHEL 与 Ubuntu 等的不同版本。
 > 
 
-	#### 简述 OCI
+#### 简述 OCI
 	OCI(Open Container Initiative)是由多家公司共同成立的项目，并由linux基金会进行管理，致力于container runtime的标准的制定和runc的开发等工作。
 	
-	OCI项目计划：
-	* Runtime: runc (or any OCI compliant runtime) and OCI runtime tools to generate the spec
-	* Images: Image management using containers/image
-	* Storage: Container and image storage is managed by containers/storage
-	* Networking: Networking support through use of CNI
-	* Builds: Builds are supported via Buildah.
-	* Conmon: Conmon is a tool for monitoring OCI runtimes.
-	>
+OCI项目计划：
+* Runtime: runc (or any OCI compliant runtime) and OCI runtime tools to generate the spec
+* Images: Image management using containers/image
+* Storage: Container and image storage is managed by containers/storage
+* Networking: Networking support through use of CNI
+* Builds: Builds are supported via Buildah.
+* Conmon: Conmon is a tool for monitoring OCI runtimes.
+>
 	> * container runtime: 主要负责的是容器的生命周期的管理。oci的runtime spec标准中对于容器的状态描述，以及对于容器的创建、删除、查看等操作进行了定义。
 	>
 	> * runc: 是对于OCI标准的一个参考实现，是一个可以用于创建和运行容器的CLI(command-line interface)工具。runc直接与容器所依赖的cgroup/linux kernel等进行交互，负责为容器配置cgroup/namespace等启动容器所需的环境，创建启动容器的相关进程。
 	>
 	为了兼容oci标准，docker也做了架构调整。将容器运行时相关的程序从docker daemon剥离出来，形成了containerd。Containerd向docker提供运行容器的API，二者通过grpc进行交互。containerd最后会通过runc来实际运行容器。
 
-	![](http://xuxinkun.github.io/img/docker-oci-runc-k8s/containerd.png)
+![](http://xuxinkun.github.io/img/docker-oci-runc-k8s/containerd.png)
 	
 	CRI-O为kubernetes提供了一个符合OCI兼容运行时的标准接口。runc是OCI运行时规范的参考实现。Kubernetes通过CRI-O调用runtC运行时，然后runC与Linux内核对话以运行容器。这绕过了对Docker守护程序的需要，并进行了容器化。使用CRI-O，不需要Docker守护程序让kubernetes集群运行容器。
 	
-	![](https://xuxinkun.github.io/img/docker-oci-runc-k8s/kubelet.png)
+![](https://xuxinkun.github.io/img/docker-oci-runc-k8s/kubelet.png)
 	
 在较高的层面上，Libpod 和 Podman 的作用范围如下：
 * 支持多种镜像格式，包括 OCI 和 Docker图像模式。
@@ -49,6 +49,7 @@
 * 要求内核运行具有正确名称空间和cgroup等的容器。
 
 本质上，Docker守护程序使用注册表，映像，容器和内核来完成所有工作。Docker命令行界面（CLI）要求守护程序代表您执行此操作。
+
 ![](https://developers.redhat.com/blog/wp-content/uploads/2019/02/fig1.png)
 
 随着使用量的增加，Docker用户担心这种方法有几个原因。列举一些：
