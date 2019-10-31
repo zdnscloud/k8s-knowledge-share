@@ -1,3 +1,33 @@
+# Service Mesh
+> A service mesh is a way to control how different parts of an application share 
+> data with one another.
+>                      -- redhat
+> A service mesh is a dedicated infrastructure layer for making service-to-service 
+> communication safe, fast, and reliable. 
+>                      -- buoyant
+
+> A service mesh is a configurable, low‑latency infrastructure layer designed to 
+> handle a high volume of network‑based interprocess communication among application 
+> infrastructure services using application programming interfaces (APIs). A service 
+> mesh ensures that communication among containerized and often ephemeral application 
+> infrastructure services is fast, reliable, and secure. The mesh provides critical 
+> capabilities including service discovery, load balancing, encryption, observability, 
+> traceability, authentication and authorization, and support for the circuit breaker 
+> pattern.
+>                      -- NGINX
+![""](sericemesh.png)
+
+# Key features
+1. Resiliency for inter-service communication
+   - Circuit-breaking
+   - Retries and timeout
+   - Fault injection
+   - Load balancing
+1. Service Discovery
+1. Routing
+1. Observability
+1. Security & Access control
+
 # Service Mesh Interface(SMI)
 Define a set of CRDs to provide the following functionality
 - Traffic policy
