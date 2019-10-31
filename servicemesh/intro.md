@@ -2,6 +2,7 @@
 > A service mesh is a way to control how different parts of an application share 
 > data with one another.
 >                      -- redhat
+
 > A service mesh is a dedicated infrastructure layer for making service-to-service 
 > communication safe, fast, and reliable. 
 >                      -- buoyant
@@ -15,7 +16,8 @@
 > traceability, authentication and authorization, and support for the circuit breaker 
 > pattern.
 >                      -- NGINX
-![""](sericemesh.png)
+
+![""](servicemesh.png)
 
 # Key features
 1. Resiliency for inter-service communication
