@@ -102,19 +102,19 @@ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/depl
 # 配置
 ```
   default-setting.yaml: |-
-    backup-target:									              #备份目标（NFS/S3）
-    backup-target-credential-secret:					    #备份使用的密钥
-    create-default-disk-labeled-nodes: true				#在带标签（node.longhorn.io/create-default-disk=true ）的节点上创建默认磁盘。默认false，在所有节点创建
+    backup-target:					#备份目标（NFS/S3）
+    backup-target-credential-secret:			#备份使用的密钥
+    create-default-disk-labeled-nodes: true		#在带标签（node.longhorn.io/create-default-disk=true ）的节点上创建默认磁盘。默认false，在所有节点创建
     default-data-path: /var/lib/zcloud/longhorn		#磁盘目录。默认/var/lib/rancher/longhorn 
-    replica-soft-anti-affinity:							      #副本调度亲和性。默认true
-    storage-over-provisioning-percentage:				  #超出配置存储的百分比（由于使用的linux Sparse File）。默认500
-    storage-minimal-available-percentage:				  #磁盘存储最小可用的百分比。默认10
-    upgrade-checker:							              	#定期检查longhorn版本，有新的时在UI提醒。默认true
-    default-replica-count:							        	#副本数。默认3
-    guaranteed-engine-cpu:							          #引擎CPU保证。默认0.2。建议不超过可用CPU的1/4（因为这个会应用于多个pod）
-    default-longhorn-static-storage-class:				#静态存储类名称
-    backupstore-poll-interval: 200						    #备份轮询频率，以秒为单位，用以更新volume的上次备份时间。
-    taint-toleration:									            #通过给longhorn设置容忍污点，然后给部分节点打上污点，阻止其他workload使用该存储节点
+    replica-soft-anti-affinity:				#副本调度亲和性。默认true
+    storage-over-provisioning-percentage:		#超出配置存储的百分比（由于使用的linux Sparse File）。默认500
+    storage-minimal-available-percentage:		#磁盘存储最小可用的百分比。默认10
+    upgrade-checker:					#定期检查longhorn版本，有新的时在UI提醒。默认true
+    default-replica-count:				#副本数。默认3
+    guaranteed-engine-cpu:				#引擎CPU保证。默认0.2。建议不超过可用CPU的1/4（因为这个会应用于多个pod）
+    default-longhorn-static-storage-class:		#静态存储类名称
+    backupstore-poll-interval: 200			#备份轮询频率，以秒为单位，用以更新volume的上次备份时间。
+    taint-toleration:					#通过给longhorn设置容忍污点，然后给部分节点打上污点，阻止其他workload使用该存储节点
 ```
 可以在安装时修改yaml文件，也可以在UI进行修改
 
