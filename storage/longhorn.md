@@ -227,7 +227,7 @@ attach节点
 
 ```iscsiadm -m discovery -t sendtargets -p 10.42.2.7(instance-manager-e的IP)```
 
-#查看所有发现的设备
+查看所有发现的设备
 
 ```iscsiadm -m node```	
 
