@@ -34,7 +34,14 @@ longhorn主要有两部分
 - engine:连接到所有副本，写操作同步到所有副本，读操作任一一个
 - replica:存储数据，每个卷有多个副本，每个副本包含完整数据。意味着只要有一个副本正常，就可以恢复数据
 
-当前使用iSCSI实现块设备。tgtd和主机上的open-iscsi结合完成创建和使用
+### 前端模式
+-	block device
+-	iscsi			#用户可以使用iscsi客户端（open-iscsi）连接
+
+longhorn的CSI暂时不支持iscsi，因此默认前端使用block device
+
+tgtd和主机上的open-iscsi结合完成创建和使用
+
 https://github.com/rancher/tgt 
 
 ### 相关组件
@@ -194,3 +201,47 @@ spec:
 * 4： 创建sts
 > 注意：由于pvc的名称改变了，因此新的sts与之前的sts不能一样。也可以删除原有的pvc，在创建新的pvc时使用原有的pvc名称，这样就可以使用之前的sts了
 * 5： 进入pod，查看数据，应该是前面的数据2
+
+
+# ISCSI
+##	Target端
+
+instance-manager-e
+
+查看target信息
+
+```tgt-admin -s
+	I_T nexus information #客户端的连接信息,IP Addr是node节点的CNI网卡IP地址
+	LUN information #LUN 信息，其中Type: disk的才是正在的设备，此处使用了sock
+```
+
+查看sock是哪个进程的，可以看到是对应的longhorn controller
+
+```lsof /var/run/longhorn-pvc-e2fe33a6-ffa0-11e9-9ec4-5254008c3f4d.sock```
+
+
+###	Initiator端
+attach节点
+
+查看target上的共享磁盘
+
+```iscsiadm -m discovery -t sendtargets -p 10.42.2.7(instance-manager-e的IP)```
+
+#查看所有发现的设备
+
+```iscsiadm -m node```	
+
+登陆target后，本机上fdisk -l会看到多出一个磁盘，在target端tgt-admin-s可以看到一个新的Initiator
+
+```iscsiadm -m node -T iqn.2014-09.com.rancher:pvc-c46ca0d8-fee9-11e9-9ec4-5254008c3f4d --login```
+
+
+登出target后没本机上fdisk -l会发现之前的那个磁盘没有了，在target端会看到之前的initiator消失了
+
+```iscsiadm -m node -T iqn.2014-09.com.rancher:pvc-c46ca0d8-fee9-11e9-9ec4-5254008c3f4d --logout```
+
+
+删除发现的设备
+
+```iscsiadm -m node -T iqn.2014-09.com.rancher:pvc-46f33f2c-f9f5-11e9-b8b5-5254008c3f4d -o delete```
+
