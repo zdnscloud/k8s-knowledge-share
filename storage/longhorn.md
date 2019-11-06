@@ -49,7 +49,7 @@ https://github.com/rancher/tgt
 在v0.6.0之前，longhorn把k8s的pod理念用到了极致，每个engine和replica都使用pod来启动，带来的问题就是单个主机上pod的数量限制
 v0.6.0版本开始引入instance-manager，daemonset方式部署instance-manager-e 运行engine进程，instance-manager-r 运行replica ，单个pod里运行多个进程，同时还启动了tgtd
 
-####  go-iscsi-helper（https://github.com/longhorn/go-iscsi-helper）{:target="_blank"}
+####  [go-iscsi-helper](ttps://github.com/longhorn/go-iscsi-helper "go-iscsi-helper"). 
 是一个库，用于实现为engine创建target。它既可以创建initiator（使用tgtd），又可以使用initiator，从而为最终用户创建块设备。 
 
 ####  Backupstore （https://github.com/longhorn/backupstore）{:target="_blank"}
