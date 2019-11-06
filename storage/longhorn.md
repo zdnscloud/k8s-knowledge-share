@@ -34,21 +34,35 @@ longhorn主要有两部分
 - engine:连接到所有副本，写操作同步到所有副本，读操作任一一个
 - replica:存储数据，每个卷有多个副本，每个副本包含完整数据。意味着只要有一个副本正常，就可以恢复数据
 
-当前使用iSCSI实现块设备。tgtd和主机上的open-iscsi结合完成创建和使用
+### 前端模式
+-	block device		(已经登录target了)
+-	iscsi			(用户自己使用iscsi客户端（open-iscsi）连接)
+
+longhorn的CSI暂时不支持iscsi，因此默认前端使用block device
+
+tgtd和主机上的open-iscsi结合完成创建和使用
+
 https://github.com/rancher/tgt 
 
 ### 相关组件
 ####  instance-manager
 在v0.6.0之前，longhorn把k8s的pod理念用到了极致，每个engine和replica都使用pod来启动，带来的问题就是单个主机上pod的数量限制
+
 v0.6.0版本开始引入instance-manager，daemonset方式部署instance-manager-e 运行engine进程，instance-manager-r 运行replica ，单个pod里运行多个进程，同时还启动了tgtd
 
 ####  go-iscsi-helper
+https://github.com/longhorn/go-iscsi-helper
+
 是一个库，用于实现为engine创建target。它既可以创建initiator（使用tgtd），又可以使用initiator，从而为最终用户创建块设备。 
 
 ####  Backupstore 
+https://github.com/longhorn/backupstore
+
 实现了备份和还原功能。目前支持两种协议：NFS和S3
 
 ####  Sparse tools
+https://https://github.com/longhorn/sparse-tools
+
 Longhorn依赖于文件系统的稀疏文件支持来存储卷数据的元数据，例如已写入哪个块。但是普通的Linux命令可能不会保留文件的稀疏元数据。 sparse-tools确保将文件的元数据保留用于某些文件操作 
 它有两个主要功能：
 * sfold 用于合并快照文件，这是快照删除过程的一部分。
@@ -73,16 +87,22 @@ Manager作为daemonset运行在所有节点，负责监视本节点上的volume
 
 ### CRD
 - volumes
+
   volume controller 负责监听engine和replica  创建/删除/更新事件，完成volumes的创建/删除/Attach/Detach/更新
 - engines
+
   engine controller负责启停engine，并通过engine监听volume的状态
 - replicas
+
   replica controller负责启动replica
 - instancemanagers
+
   反应了该实例的状态，包括engine和replica
 - nodes
+
   node controller负责收集节点信息（磁盘、调度标志、节点标签、磁盘标签）
 - engineimages
+
   代表engine的版本。由于Longhorn引擎是微服务，因此每个卷都可以运行不同版本的引擎映像。当Longhorn Manager升级但引擎尚未升级时，就会发生这种情况。Longhorn Manager使用部署在节点上的引擎二进制文件与卷进行通信。这些引擎二进制文件是使用引擎映像控制器部署的。
 引擎映像控制器还负责创建/删除实例管理器对象，因为引擎的每个版本都需要与相同版本的实例管理器一起运行。
 
@@ -95,19 +115,19 @@ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/depl
 # 配置
 ```
   default-setting.yaml: |-
-    backup-target:									              #备份目标（NFS/S3）
-    backup-target-credential-secret:					    #备份使用的密钥
-    create-default-disk-labeled-nodes: true				#在带标签（node.longhorn.io/create-default-disk=true ）的节点上创建默认磁盘。默认false，在所有节点创建
+    backup-target:					#备份目标（NFS/S3）
+    backup-target-credential-secret:			#备份使用的密钥
+    create-default-disk-labeled-nodes: true		#在带标签（node.longhorn.io/create-default-disk=true ）的节点上创建默认磁盘。默认false，在所有节点创建
     default-data-path: /var/lib/zcloud/longhorn		#磁盘目录。默认/var/lib/rancher/longhorn 
-    replica-soft-anti-affinity:							      #副本调度亲和性。默认true
-    storage-over-provisioning-percentage:				  #超出配置存储的百分比（由于使用的linux Sparse File）。默认500
-    storage-minimal-available-percentage:				  #磁盘存储最小可用的百分比。默认10
-    upgrade-checker:							              	#定期检查longhorn版本，有新的时在UI提醒。默认true
-    default-replica-count:							        	#副本数。默认3
-    guaranteed-engine-cpu:							          #引擎CPU保证。默认0.2。建议不超过可用CPU的1/4（因为这个会应用于多个pod）
-    default-longhorn-static-storage-class:				#静态存储类名称
-    backupstore-poll-interval: 200						    #备份轮询频率，以秒为单位，用以更新volume的上次备份时间。
-    taint-toleration:									            #通过给longhorn设置容忍污点，然后给部分节点打上污点，阻止其他workload使用该存储节点
+    replica-soft-anti-affinity:				#副本调度亲和性。默认true
+    storage-over-provisioning-percentage:		#超出配置存储的百分比（由于使用的linux Sparse File）。默认500
+    storage-minimal-available-percentage:		#磁盘存储最小可用的百分比。默认10
+    upgrade-checker:					#定期检查longhorn版本，有新的时在UI提醒。默认true
+    default-replica-count:				#副本数。默认3
+    guaranteed-engine-cpu:				#引擎CPU保证。默认0.2。建议不超过可用CPU的1/4（因为这个会应用于多个pod）
+    default-longhorn-static-storage-class:		#静态存储类名称
+    backupstore-poll-interval: 200			#备份轮询频率，以秒为单位，用以更新volume的上次备份时间。
+    taint-toleration:					#通过给longhorn设置容忍污点，然后给部分节点打上污点，阻止其他workload使用该存储节点
 ```
 可以在安装时修改yaml文件，也可以在UI进行修改
 
@@ -127,8 +147,8 @@ kubectl create -f https://raw.githubusercontent.com/longhorn/longhorn/master/exa
 
 
 # 增加磁盘
-* 1:将磁盘格式化后挂载到某个目录
-* 2:ui上编辑node，将挂载目录添加到磁盘列表
+* 1：将磁盘格式化后挂载到某个目录
+* 2：ui上编辑node，将挂载目录添加到磁盘列表
 
 另外，可以通过禁用默认的磁盘目录，来避免使用
 
@@ -194,3 +214,47 @@ spec:
 * 4： 创建sts
 > 注意：由于pvc的名称改变了，因此新的sts与之前的sts不能一样。也可以删除原有的pvc，在创建新的pvc时使用原有的pvc名称，这样就可以使用之前的sts了
 * 5： 进入pod，查看数据，应该是前面的数据2
+
+
+# ISCSI
+##	Target端
+
+instance-manager-e
+
+查看target信息
+
+```tgt-admin -s
+	I_T nexus information #客户端的连接信息,IP Addr是node节点的CNI网卡IP地址
+	LUN information #LUN 信息，其中Type: disk的才是正在的设备，此处使用了sock
+```
+
+查看sock是哪个进程的，可以看到是对应的longhorn controller
+
+```lsof /var/run/longhorn-pvc-e2fe33a6-ffa0-11e9-9ec4-5254008c3f4d.sock```
+
+
+###	Initiator端
+attach节点
+
+查看target上的共享磁盘
+
+```iscsiadm -m discovery -t sendtargets -p 10.42.2.7(instance-manager-e的IP)```
+
+查看所有发现的设备
+
+```iscsiadm -m node```	
+
+登陆target后，本机上fdisk -l会看到多出一个磁盘，在target端tgt-admin-s可以看到一个新的Initiator
+
+```iscsiadm -m node -T iqn.2014-09.com.rancher:pvc-c46ca0d8-fee9-11e9-9ec4-5254008c3f4d --login```
+
+
+登出target后没本机上fdisk -l会发现之前的那个磁盘没有了，在target端会看到之前的initiator消失了
+
+```iscsiadm -m node -T iqn.2014-09.com.rancher:pvc-c46ca0d8-fee9-11e9-9ec4-5254008c3f4d --logout```
+
+
+删除发现的设备
+
+```iscsiadm -m node -T iqn.2014-09.com.rancher:pvc-46f33f2c-f9f5-11e9-b8b5-5254008c3f4d -o delete```
+
