@@ -87,16 +87,22 @@ Manager作为daemonset运行在所有节点，负责监视本节点上的volume
 
 ### CRD
 - volumes
+
   volume controller 负责监听engine和replica  创建/删除/更新事件，完成volumes的创建/删除/Attach/Detach/更新
 - engines
+
   engine controller负责启停engine，并通过engine监听volume的状态
 - replicas
+
   replica controller负责启动replica
 - instancemanagers
+
   反应了该实例的状态，包括engine和replica
 - nodes
+
   node controller负责收集节点信息（磁盘、调度标志、节点标签、磁盘标签）
 - engineimages
+
   代表engine的版本。由于Longhorn引擎是微服务，因此每个卷都可以运行不同版本的引擎映像。当Longhorn Manager升级但引擎尚未升级时，就会发生这种情况。Longhorn Manager使用部署在节点上的引擎二进制文件与卷进行通信。这些引擎二进制文件是使用引擎映像控制器部署的。
 引擎映像控制器还负责创建/删除实例管理器对象，因为引擎的每个版本都需要与相同版本的实例管理器一起运行。
 
@@ -141,8 +147,8 @@ kubectl create -f https://raw.githubusercontent.com/longhorn/longhorn/master/exa
 
 
 # 增加磁盘
-* 1:将磁盘格式化后挂载到某个目录
-* 2:ui上编辑node，将挂载目录添加到磁盘列表
+* 1：将磁盘格式化后挂载到某个目录
+* 2：ui上编辑node，将挂载目录添加到磁盘列表
 
 另外，可以通过禁用默认的磁盘目录，来避免使用
 
