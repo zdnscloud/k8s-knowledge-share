@@ -35,8 +35,8 @@ longhorn主要有两部分
 - replica:存储数据，每个卷有多个副本，每个副本包含完整数据。意味着只要有一个副本正常，就可以恢复数据
 
 ### 前端模式
--	block device
--	iscsi			#用户可以使用iscsi客户端（open-iscsi）连接
+-	block device		(已经登录target了)
+-	iscsi			(用户自己使用iscsi客户端（open-iscsi）连接)
 
 longhorn的CSI暂时不支持iscsi，因此默认前端使用block device
 
@@ -47,15 +47,22 @@ https://github.com/rancher/tgt
 ### 相关组件
 ####  instance-manager
 在v0.6.0之前，longhorn把k8s的pod理念用到了极致，每个engine和replica都使用pod来启动，带来的问题就是单个主机上pod的数量限制
+
 v0.6.0版本开始引入instance-manager，daemonset方式部署instance-manager-e 运行engine进程，instance-manager-r 运行replica ，单个pod里运行多个进程，同时还启动了tgtd
 
-####  [go-iscsi-helper](ttps://github.com/longhorn/go-iscsi-helper "go-iscsi-helper"). 
+####  go-iscsi-helper
+https://github.com/longhorn/go-iscsi-helper
+
 是一个库，用于实现为engine创建target。它既可以创建initiator（使用tgtd），又可以使用initiator，从而为最终用户创建块设备。 
 
-####  Backupstore （https://github.com/longhorn/backupstore）{:target="_blank"}
+####  Backupstore 
+https://github.com/longhorn/backupstore
+
 实现了备份和还原功能。目前支持两种协议：NFS和S3
 
-####  Sparse tools（https://https://github.com/longhorn/sparse-tools）{:target="_blank"}
+####  Sparse tools
+https://https://github.com/longhorn/sparse-tools
+
 Longhorn依赖于文件系统的稀疏文件支持来存储卷数据的元数据，例如已写入哪个块。但是普通的Linux命令可能不会保留文件的稀疏元数据。 sparse-tools确保将文件的元数据保留用于某些文件操作 
 它有两个主要功能：
 * sfold 用于合并快照文件，这是快照删除过程的一部分。
