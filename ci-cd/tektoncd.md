@@ -26,7 +26,169 @@ Tekton Pipelines are Typed
 
 - Pipeline 运行管道，可以实现一个流程，可以由事件出发，也可以通过`PipelineRun`来运行
 - Task 基本运行单元，可以通过`TaskRun`来运行
-- PipelineResource Pipeline的输入和输出资源
+- PipelineResource `Task`的输入和输出资源
+
+## 各类资源介绍
+
+### PipelineResources
+
+`PipelineResource` 是 `Pipline` 中 `Task` 的输入和输出对象
+
+Syntax:
+
+To define a configuration file for a PipelineResource, you can specify the following fields:
+
+- Required:
+  - apiVersion - Specifies the API version, for example tekton.dev/v1alpha1.
+  - kind - Specify the PipelineResource resource object.
+  - metadata - Specifies data to uniquely identify the PipelineResource object, for example a name.
+  - spec - Specifies the configuration information for your PipelineResource resource object.
+  - type - Specifies the type of the PipelineResource
+- Optional:
+  - params - Parameters which are specific to each type of PipelineResource
+
+
+Types:
+
+- Git
+- PullRequest
+- Image
+- Cluster
+- Storage
+- CloutEvent
+
+
+### Tasks
+
+Task(or ClusterTask) 是CI中一个组顺序执行的step的集合，是基本任务单位。Task会在pod中运行。
+
+Task 需要声明三部分：
+
+- inputs
+- outputs
+- steps
+
+Task 在namespace中可用，ClusterTask在整个集群可用
+
+Syntax:
+
+To define a configuration file for a Task resource, you can specify the following fields:
+
+- Required:
+  - apiVersion - Specifies the API version, for example tekton.dev/v1alpha1.
+  - kind - Specify the Task resource object.
+  - metadata - Specifies data to uniquely identify the Task resource object, for example a name.
+  - spec - Specifies the configuration information for your Task resource object. Task steps must be defined through either of the following fields:
+    -steps - Specifies one or more container images that you want to run in your Task.
+- Optional:
+  - inputs - Specifies parameters and PipelineResources needed by your Task
+  - outputs - Specifies PipelineResources created by your Task
+  - volumes - Specifies one or more volumes that you want to make available to your Task's steps.
+  - stepTemplate - Specifies a Container step definition to use as the basis for all steps within your Task.
+  - sidecars - Specifies sidecar containers to run alongside steps.
+
+
+### Piplines
+
+Pipline定义并执行一组Task
+
+Syntax:
+
+To define a configuration file for a Pipeline resource, you can specify the following fields:
+
+
+- Required:
+  - apiVersion - Specifies the API version, for example tekton.dev/v1alpha1.
+  - kind - Specify the Pipeline resource object.
+  - metadata - Specifies data to uniquely identify the Pipeline resource object, for example a name.
+  - spec - Specifies the configuration information for your Pipeline resource object. In order for a Pipeline to do anything, the spec must include:
+    - tasks - Specifies which Tasks to run and how to run them
+- Optional:
+  - resources - Specifies which PipelineResources of which types the Pipeline will be using in its Tasks
+  - tasks
+    - resources.inputs / resource.outputs
+      - from - Used when the content of the PipelineResource should come from the output of a previous Pipeline Task
+      - runAfter - Used when the Pipeline Task should be executed after another Pipeline Task, but there is no output linking required
+      - retries - Used when the task is wanted to be executed if it fails. Could be a network error or a missing dependency. It does not apply to cancellations.
+      - conditions - Used when a task is to be executed only if the specified conditions are evaluated to be true.
+
+
+Task执行顺序，所有Task默认都会并行执行，除非指定了
+- from
+- runAfter
+两项会指定task执行的依赖关系
+
+For example see this Pipeline spec:
+
+```yaml
+- name: lint-repo
+  taskRef:
+    name: pylint
+  resources:
+    inputs:
+      - name: workspace
+        resource: my-repo
+- name: test-app
+  taskRef:
+    name: make-test
+  resources:
+    inputs:
+      - name: workspace
+        resource: my-repo
+- name: build-app
+  taskRef:
+    name: kaniko-build-app
+  runAfter:
+    - test-app
+  resources:
+    inputs:
+      - name: workspace
+        resource: my-repo
+    outputs:
+      - name: image
+        resource: my-app-image
+- name: build-frontend
+  taskRef:
+    name: kaniko-build-frontend
+  runAfter:
+    - test-app
+  resources:
+    inputs:
+      - name: workspace
+        resource: my-repo
+    outputs:
+      - name: image
+        resource: my-frontend-image
+- name: deploy-all
+  taskRef:
+    name: deploy-kubectl
+  resources:
+    inputs:
+      - name: my-app-image
+        resource: my-app-image
+        from:
+          - build-app
+      - name: my-frontend-image
+        resource: my-frontend-image
+        from:
+          - build-frontend
+```
+
+This will result in the following execution graph:
+
+```none
+        |            |
+        v            v
+     test-app    lint-repo
+    /        \
+   v          v
+build-app  build-frontend
+   \          /
+    v        v
+    deploy-all
+```
+
+
 
 
 ## 安装
@@ -180,18 +342,13 @@ spec:
           The build context used by Kaniko
           (https://github.com/GoogleContainerTools/kaniko#kaniko-build-contexts)
         default: /workspace/docker-source
-      - name: imageTagName
-        type: string
-        description:
-          The build image's tagName
-        default: latest
   outputs:
     resources:
       - name: builtImage
         type: image
   steps:
     - name: build-and-push
-      image: docker.io/gsmlg/kaniko-project-executor:v0.13.0
+      image: registry.zdns.cn/gsmlg/kaniko-project-executor:v0.13.0
       # specifying DOCKER_CONFIG is required to allow kaniko to detect docker credential
       env:
         - name: "DOCKER_CONFIG"
@@ -200,8 +357,10 @@ spec:
         - /kaniko/executor
       args:
         - --dockerfile=$(inputs.params.pathToDockerFile)
-        - --destination=$(outputs.resources.builtImage.url):$(inputs.params.imageTagName)
+        - --destination=$(outputs.resources.builtImage.url)
         - --context=$(inputs.params.pathToContext)
+        - --oci-layout-path=/builder/home/image-outputs/builtImage
+        - --skip-tls-verify
 
 ---
 
@@ -229,11 +388,6 @@ spec:
           The build context used by Kaniko
           (https://github.com/GoogleContainerTools/kaniko#kaniko-build-contexts)
         default: /workspace/docker-source
-      - name: imageTagName
-        type: string
-        description:
-          The build image's tagName
-        default: latest
   outputs:
     resources:
       - name: builtImage
@@ -244,11 +398,11 @@ spec:
       command:
         - /workspace/docker-source/setup.sh
       args:
-        - $(inputs.resources.image.url)@$(inputs.resources.image.digest)"
-        - $(inputs.resources.uiImage.url)@$(inputs.resources.uiImage.digest)"
+        - $(inputs.resources.image.url)
+        - $(inputs.resources.uiImage.url)
         - /workspace/docker-source/Dockerfile
     - name: build-and-push
-      image: docker.io/gsmlg/kaniko-project-executor:v0.13.0
+      image: registry.zdns.cn/gsmlg/kaniko-project-executor:v0.13.0
       # specifying DOCKER_CONFIG is required to allow kaniko to detect docker credential
       env:
         - name: "DOCKER_CONFIG"
@@ -257,12 +411,10 @@ spec:
         - /kaniko/executor
       args:
         - --dockerfile=$(inputs.params.pathToDockerFile)
-        - --destination=$(outputs.resources.builtImage.url):$(inputs.params.imageTagName)
+        - --destination=$(outputs.resources.builtImage.url)
         - --context=$(inputs.params.pathToContext)
-        - --build-arg="repo=$(inputs.resources.image.url)"
-        - --build-arg="uirepo=$(inputs.resources.uiImage.url)"
-        - --build-arg="branch=$(inputs.resources.image.digiest)"
-        - --build-arg="uibranch=$(inputs.resources.uiImage.digiest)"
+        - --oci-layout-path=/builder/home/image-outputs/builtImage
+        - --skip-tls-verify
 
 ---
 
@@ -284,11 +436,9 @@ spec:
       type: image
     - name: zcloud-image
       type: image
-  params:
-    - name: imageTagName
-      default: "latest"
   tasks:
     - name: build-singlecloud-ui
+      retries: 1
       taskRef:
         name: build-image-from-git
       resources:
@@ -311,12 +461,6 @@ spec:
     - name: build-zcloud
       taskRef:
         name: build-zcloud
-      runAfter:
-        - build-singlecloud
-        - build-singlecloud-ui
-      params:
-      - name: imageTagName
-        value: $(params.imageTagName)
       resources:
         inputs:
         - name: docker-source
@@ -375,17 +519,23 @@ spec:
       - name: url
         value: https://github.com/gsmlg/zcloud-image
   - name: singlecloud-image
-    resourceRef:
-      name: singlecloud-image
+    resourceSpec:
+      type: image
+      params:
+        - name: url
+          value: registry.zdns.cn/zcloud/singlecloud:master
   - name: singlecloud-ui-image
-    resourceRef:
-      name: singlecloud-ui-image
+    resourceSpec:
+      type: image
+      params:
+        - name: url
+          value: registry.zdns.cn/zcloud/singlecloud-ui:master
   - name: zcloud-image
-    resourceRef:
-      name: zcloud-image
-  params:
-  - name: imageTagName
-    value: master
+    resourceSpec:
+      type: image
+      params:
+        - name: url
+          value: registry.zdns.cn/zcloud/zcloud:master
 
 
 ```
