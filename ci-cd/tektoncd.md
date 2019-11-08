@@ -283,30 +283,6 @@ type: kubernetes.io/dockerconfigjson
 apiVersion: tekton.dev/v1alpha1
 kind: PipelineResource
 metadata:
-  name: singlecloud-ui-image
-spec:
-  type: image
-  params:
-    - name: url
-      value: docker.io/gsmlg/singlecloud-ui 
-
----
-
-apiVersion: tekton.dev/v1alpha1
-kind: PipelineResource
-metadata:
-  name: singlecloud-image
-spec:
-  type: image
-  params:
-    - name: url
-      value: docker.io/gsmlg/singlecloud
-
----
-
-apiVersion: tekton.dev/v1alpha1
-kind: PipelineResource
-metadata:
   name: zcloud-image
 spec:
   type: image
@@ -531,11 +507,7 @@ spec:
         - name: url
           value: registry.zdns.cn/zcloud/singlecloud-ui:master
   - name: zcloud-image
-    resourceSpec:
-      type: image
-      params:
-        - name: url
-          value: registry.zdns.cn/zcloud/zcloud:master
-
+    resourceRef:
+      name: zcloud-image
 
 ```
