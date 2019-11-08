@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  generateName: vanguard-build-
+spec:
+  pipelineRef:
+    name: go-cicd-pipeline
+  serviceAccount: pipeline-run-service
+  resources:
+  - name: source
+    resourceSpec:
+      type: git
+      params:
+      - name: revision
+        value: master
+      - name: url
+        value: https://github.com/zdnscloud/vanguard
+  - name: builtImage
+    resourceSpec:
+      type: image
+      params:
+      - name: url
+        value: registry.zdns.cn/zcloud/vanguard:master
+  params:
+    - name: package
+      value: github.com/zdnscloud/vanguard
+    - name: packages
+      value: cmd/vanguard/vanguard.go 
+    - name: testflags
+      value: -v -timeout 60s -race ./...

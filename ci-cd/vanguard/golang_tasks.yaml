@@ -1,0 +1,148 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: golang-build
+spec:
+  inputs:
+    params:
+    - name: package
+      description: base package to build in
+    - name: packages
+      description: "packages to build (default: ./cmd/...)"
+      default: "./cmd/..."
+    - name: version
+      description: golang version to use for builds
+      default: "1.12"
+    - name: flags
+      description: flags to use for the test command
+      default: -v
+    - name: GOOS
+      description: "running program's operating system target"
+      default: linux
+    - name: GOARCH
+      description: "running program's architecture target"
+      default: amd64
+    - name: GO111MODULE
+      description: "value of module support"
+      default: auto
+    resources:
+    - name: source
+      type: git
+      targetPath: src/$(inputs.params.package)
+  steps:
+  - name: build
+    image: golang:$(inputs.params.version)
+    workingdir: /workspace/src/$(inputs.params.package)
+    command:
+    - /bin/bash
+    args:
+    - -c
+    - "go build $(inputs.params.flags) $(inputs.params.packages)"
+    env:
+    - name: GOPATH
+      value: /workspace
+    - name: GOOS
+      value: "$(inputs.params.GOOS)"
+    - name: GOARCH
+      value: "$(inputs.params.GOARCH)"
+    - name: GO111MODULE
+      value: "$(inputs.params.GO111MODULE)"
+
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: golangci-lint
+spec:
+  inputs:
+    params:
+    - name: package
+      description: base package (and its children) under validation
+    - name: flags
+      description: flags to use for the test command
+      default: --verbose
+    - name: version
+      default: golangci-lint version to use
+      default: "v1.17.1"
+    - name: GOOS
+      description: "running operating system target"
+      default: linux
+    - name: GOARCH
+      description: "running architecture target"
+      default: amd64
+    - name: GO111MODULE
+      description: "value of module support"
+      default: auto
+    resources:
+    - name: source
+      type: git
+      targetPath: src/$(inputs.params.package)
+  steps:
+  - name: lint
+    image: golangci/golangci-lint:$(inputs.params.version)
+    workingdir: /workspace/src/$(inputs.params.package)
+    command:
+    - /bin/bash
+    args:
+    - -c
+    - "golangci-lint run $(inputs.params.flags)"
+    env:
+    - name: GOPATH
+      value: /workspace
+    - name: GOOS
+      value: "$(inputs.params.GOOS)"
+    - name: GOARCH
+      value: "$(inputs.params.GOARCH)"
+    - name: GO111MODULE
+      value: "$(inputs.params.GO111MODULE)"
+
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: golang-test
+spec:
+  inputs:
+    params:
+    - name: package
+      description: package (and its children) under test
+    - name: packages
+      description: "packages to test (default: ./...)"
+      default: "./..."
+    - name: version
+      description: golang version to use for tests
+      default: "1.12"
+    - name: flags
+      description: flags to use for the test command
+      default: -race -cover -v
+    - name: GOOS
+      description: "running program's operating system target"
+      default: linux
+    - name: GOARCH
+      description: "running program's architecture target"
+      default: amd64
+    - name: GO111MODULE
+      description: "value of module support"
+      default: auto
+    resources:
+    - name: source
+      type: git
+      targetPath: src/$(inputs.params.package)
+  steps:
+  - name: unit-test
+    image: golang:$(inputs.params.version)
+    workingdir: /workspace/src/$(inputs.params.package)
+    command:
+    - /bin/bash
+    args:
+    - -c
+    - "go test $(inputs.params.flags) $(inputs.params.packages)"
+    env:
+    - name: GOPATH
+      value: /workspace
+    - name: GOOS
+      value: "$(inputs.params.GOOS)"
+    - name: GOARCH
+      value: "$(inputs.params.GOARCH)"
+    - name: GO111MODULE
+      value: "$(inputs.params.GO111MODULE)"
