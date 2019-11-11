@@ -4,6 +4,7 @@ metadata:
   name: pipeline-run-role
 rules:
 - apiGroups:
+  - ""
   - extensions
   resources:
   - deployments
@@ -42,15 +43,4 @@ metadata:
   namespace: cicd
 secrets:
   - name: regcred
-
----
-
-apiVersion: v1
-data:
-  .dockerconfigjson:
-kind: Secret
-metadata:
-  name: regcred
-  namespace: cicd
-type: kubernetes.io/dockerconfigjson
 
