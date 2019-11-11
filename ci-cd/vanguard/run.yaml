@@ -25,6 +25,6 @@ spec:
     - name: package
       value: github.com/zdnscloud/vanguard
     - name: packages
-      value: cmd/vanguard/vanguard.go 
+      value: cmd/vanguard/vanguard.go
     - name: testflags
       value: -v -timeout 60s -race ./...

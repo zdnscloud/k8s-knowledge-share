@@ -23,6 +23,7 @@ spec:
       command: ["yq"]
       args:
         - "w"
+        - "-d4"
         - "-i"
         - "$(inputs.params.path)"
         - "$(inputs.params.yamlPathToImage)"
