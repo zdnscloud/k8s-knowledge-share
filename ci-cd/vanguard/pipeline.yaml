@@ -23,7 +23,7 @@ spec:
       command: ["yq"]
       args:
         - "w"
-        - "-d4"
+        - "-d1"
         - "-i"
         - "$(inputs.params.path)"
         - "$(inputs.params.yamlPathToImage)"
@@ -59,16 +59,16 @@ spec:
       type: string
       default: -race -cover -v
   tasks:
-    - name: lint
-      taskRef:
-        name: golangci-lint
-      params:
-        - name: package
-          value: $(params.package)
-      resources:
-        inputs:
-          - name: source
-            resource: source
+    # - name: lint
+    #   taskRef:
+    #     name: golangci-lint
+    #   params:
+    #     - name: package
+    #       value: $(params.package)
+    #   resources:
+    #     inputs:
+    #       - name: source
+    #         resource: source
     - name: test
       taskRef:
         name: golang-test
@@ -86,6 +86,8 @@ spec:
     - name: image
       taskRef:
         name: kaniko
+      runAfter:
+        - test
       resources:
         inputs:
           - name: source
@@ -98,7 +100,7 @@ spec:
         name: deploy-using-kubectl
       params:
         - name: path
-          value: /workspace/source/vanguard_deploy.yaml
+          value: /workspace/source/auto_deploy.yaml
         - name: yamlPathToImage
           value: "spec.template.spec.containers[0].image"
       resources:

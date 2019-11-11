@@ -7,6 +7,8 @@ rules:
   - extensions
   resources:
   - deployments
+  - configmaps
+  - services
   verbs:
   - get
   - list
