@@ -13,6 +13,8 @@ Longhorn是Kubernetes的分布式块存储系统。 它使用容器和微服务�
 
 > 当前是alpha 状态，最新版本v0.6.2
 
+> 最新的v0.7.0 已经是beta版本了，但要求k8s>v1.14.0
+
 # 说明
 longhorn主要有两部分
 - Longhorn Engine：实现数据平面
@@ -29,6 +31,7 @@ longhorn主要有两部分
 - 控制器协调快照和备份操作。
 - 控制器和副本包装为Docker容器。
 
+![avatar](longhorn-tgt.png)
 
 ### 两种工作模式
 - engine:连接到所有副本，写操作同步到所有副本，读操作任一一个
