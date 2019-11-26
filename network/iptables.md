@@ -14,41 +14,30 @@ Linux上防火墙实际是通过内核的netfilter来实现的，iptables和fire
 
 # 五张表
 ## filter
-### 用途  
-用于控制到达某条链上的数据包是继续放行、直接丢弃(drop)还是拒绝(reject)
-### 三个链
-- INPUT
-- FORWARD
-- OUTPUT
-### 内核模块
+用途：用于控制到达某条链上的数据包是继续放行、直接丢弃(drop)还是拒绝(reject)
+
+三个链：INPUT、FORWARD、OUTPUT
+
+内核模块
 iptables_filter
 ## nat 表
-### 用途
-network address translation 网络地址转换，用于修改数据包的源地址和目的地址
-### 三个链
-- PREROUTING
-- POSTROUTING、
-- OUTPUT
-### 内核模块
-iptable_nat 
+用途：network address translation 网络地址转换，用于修改数据包的源地址和目的地址
+
+三个链：PREROUTING、POSTROUTING、OUTPUT
+
+内核模块：iptable_nat 
 ## mangle
-### 用途
-用于修改数据包的 IP 头信息
-### 五个链
-- PREROUTING
-- POSTROUTING
-- INPUT
-- OUTPUT
-- FORWARD
-### 内核模块
-iptable_mangle 
+用途：用于修改数据包的 IP 头信息
+
+五个链：PREROUTING、POSTROUTING、INPUT、OUTPUT、FORWARD
+
+内核模块：iptable_mangle 
 ## raw 
-### 用途iptables 是有状态的，其对数据包有链接追踪机制，连接追踪信息在 /proc/net/nf_conntrack 中可以看到记录，而 raw 是用来去除链接追踪机制的
-### 两个链
-- OUTPUT
-- PREROUTING
-### 内核模块
-iptable_raw 
+用途：iptables 是有状态的，其对数据包有链接追踪机制，连接追踪信息在 /proc/net/nf_conntrack 中可以看到记录，而 raw 是用来去除链接追踪机制的
+
+两个链：OUTPUT、PREROUTING
+
+内核模块：iptable_raw 
 ## security 
 最不常用的表，用在 SELinux 上
 
