@@ -18,8 +18,7 @@ Linux上防火墙实际是通过内核的netfilter来实现的，iptables和fire
 
 三个链：INPUT、FORWARD、OUTPUT
 
-内核模块
-iptables_filter
+内核模块: iptables_filter
 ## nat 表
 用途：network address translation 网络地址转换，用于修改数据包的源地址和目的地址
 
@@ -42,7 +41,7 @@ iptables_filter
 最不常用的表，用在 SELinux 上
 
 # 流程
-这五张表是对 iptables 所有规则的逻辑集群且是有顺序的，当数据包到达某一条链时会按表的顺序进行处理，表的优先级为：raw、mangle、nat、filter、security。
+这五张表是对 iptables 所有规则的逻辑集群且是有顺序的，当数据包到达某一条链时会按表的顺序进行处理，表的优先级为：raw-->mangle-->nat-->filter-->security
 
 iptables 的工作流程如下图所示
   ![""](pictures/iptables-Process-Flow.png)
