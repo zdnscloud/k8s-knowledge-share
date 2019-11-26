@@ -56,7 +56,7 @@ iptable_raw
 这五张表是对 iptables 所有规则的逻辑集群且是有顺序的，当数据包到达某一条链时会按表的顺序进行处理，表的优先级为：raw、mangle、nat、filter、security。
 
 iptables 的工作流程如下图所示
-
+  ![""](pictures/iptables-Process-Flow.png)
 
 # 动作
 * accept:接收数据包，跳往下一个chain
