@@ -87,7 +87,7 @@ const (
 ```
 
 流程图
-
+  ![""](pictures/kube-proxy-iptables.png)
 # 源码分析
 kube-proxy 根据给定的 proxyMode 初始化对应的 proxier 后会调用 Proxier.SyncLoop() 执行 proxier 的主循环，而其最终会调用 proxier.syncProxyRules() 刷新 iptables 规则
 
