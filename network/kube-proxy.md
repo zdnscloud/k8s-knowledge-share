@@ -84,7 +84,36 @@ const (
 -A KUBE-MARK-MASQ -j MARK --set-xmark 0x4000/0x4000
 -A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -m mark --mark 0x4000/0x4000 -j MASQUERADE
 ```
+> MASQUERADE和SNAT的功能类似，只是SNAT需要明确指明源IP的的值，MASQUERADE会根据网卡IP自动更改，所以更实用一些
 
+### Why SNAT
+从上面的iptables规则中，我看可以看到有3个地方jump到了KUBE-MARK-MASQ
+- -A KUBE-SERVICES ! -s 10.42.0.0/16 -d 10.43.220.178/32 -p tcp -m comment --comment "default/test-headless:dns cluster IP" -m tcp --dport 53 -j KUBE-MARK-MASQ
+	 * 适用情形：非集群内的Pod通过Cluster IP访问service
+	 * 原因：如果不做SNAT，endpoint收到的请求包中源地址外部节点地址，发出的响应包目的地址也就是外部节点地址，node1会将响应包直接路由给外部节点，但外部节点会因为发出的请求包目的地址是Cluster IP，收到的响应包源地址是node1，导致连接无法建立。所以node2在做完DNAT后还需要再做SNAT，将请求包中的源地址从外部节点自身IP改为node2的集群IP
+> 非集群Pod有两种情况，第一种是集群节点（可能有多个IP），第二种是集群外节点通过添加路由的方式
+
+> 如果集群节点只有一个IP，要访问Cluster IP，endpoint看到的源地址是节点IP，这个不是说没有做SNAT，只不过是SNAT前后的地址没有变化，如果集群有两个IP，节点使用非集群IP来访问Cluster IP，endpoint看到的源地址就会被SNAT成节点的集群IP
+
+- -A KUBE-NODEPORTS -p tcp -m comment --comment "default/test-headless:dns" -m tcp --dport 32389 -j KUBE-MARK-MASQ
+	* 适用情形：通过集群边界节点上的Node Port方式访问service
+	* 原因：如果不做SNAT，endpoint收到的请求包中源地址是client，发出响应的包目的地址也就是client，node1会将响应包直接路由给client，但client会因为发出的请求包目的地址是边界节点node2，收到的响应包源地址的却是node1，导致连接无法建立。所以node2在做完DNAT后还需要再做SNAT，将请求包中源地址从client改为node2的集群IP
+
+- -A KUBE-SEP-TQDLYFBKYD47OUDX -s 10.42.1.3/32 -j KUBE-MARK-MASQ
+	* 适用情形：endpoint通过Cluster IP访问service，且被负载到自身（很少见）
+	* 原因：如果不做SNAT，endpoint收到的响应包中源地址、目的地址都是自己，而之前发出的请求包中目的地址是Cluster IP，导致连接无法建立。所以node1上在做完DNAT后还需要再做SNAT，将源地址从endpoint改为node1的cni0网卡地址（一般为endpoint的网关地址）
+``` 
+					       	      client
+					                  \ ^
+					                    \ \
+					                      v \
+		   (ens3:202.173.9.4)node 1 <--- node 2（ens3: 202.173.9.3）
+		    | ^   SNAT
+		    | |   --->
+		    v |
+		 endpoint
+```
+> 注意：不论是SNAT还是DNAT，做过之后会使用 Linux 内核的 conntrack 工具包来记录具体NAT的信息，以便可以将未来的数据包做同样的NAT以及回程包反修改。
 ## KUBE-MARK-DROP
 当含有0x8000/0x8000标签的报文会被丢弃
 ```
@@ -92,7 +121,7 @@ const (
 -A KUBE-FIREWALL -m comment --comment "kubernetes firewall for dropping marked packets" -m mark --mark 0x8000/0x8000 -j DROP
 ```
 
-流程图
+## 流程图
   ![""](pictures/kube-proxy-iptables.png)
 # 源码分析
 kube-proxy 根据给定的 proxyMode 初始化对应的 proxier 后会调用 Proxier.SyncLoop() 执行 proxier 的主循环，而其最终会调用 proxier.syncProxyRules() 刷新 iptables 规则
