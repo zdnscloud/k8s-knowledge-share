@@ -1,3 +1,7 @@
+# kube-proxy工作原理
+kube-proxy 监听 API server 中 service 和 endpoint 的变化情况，并通过 userspace、iptables、ipvs 或 winuserspace 等 proxier 来为服务配置负载均衡（仅支持 TCP 和 UDP）
+  ![""](pictures/kube-proxy.png)
+
 # kube-proxy模式
 - userspace
 - iptables
@@ -28,7 +32,7 @@ const (
 -A PREROUTING -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
 -A OUTPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
 ```
-2. 在KUBE-SERVICES链中根据目标地址是service的将数据包导入到KUBE-SVC-XXX链里，如果没有KUBE-SVC-XXX链，则REJECT，其余的导入到KUBE-NODEPORTS链中
+2. 在KUBE-SERVICES链中根据目标地址和端口是service的将数据包导入到KUBE-SVC-XXX链里，如果没有KUBE-SVC-XXX链，则REJECT，其余的导入到KUBE-NODEPORTS链中
 ```
 -A KUBE-SERVICES -d 10.43.122.99/32 -p tcp -m comment --comment "default/test-zdns:dns has no endpoints" -m tcp --dport 53 -j REJECT --reject-with icmp-port-unreachable
 -A KUBE-SERVICES ! -s 10.42.0.0/16 -d 10.43.220.178/32 -p tcp -m comment --comment "default/test-headless:dns cluster IP" -m tcp --dport 53 -j KUBE-MARK-MASQ
@@ -36,7 +40,7 @@ const (
 -A KUBE-SERVICES -m comment --comment "kubernetes service nodeports; NOTE: this must be the last rule in this chain" -m addrtype --dst-type LOCAL -j KUBE-NODEPORTS
 ```
 > 这里可以看到KUBE-NODEPORTS出于最后，说明kube-proxy优先查找Cluster-IP类型的，最后再查找NodePort类型的service
-3. 在KUBE-NODEPORTS链中根据目标端口是service的将数据导入到KUBE-SVC-XXX链里
+3. 在KUBE-NODEPORTS链中根据目标地址和端口是service的将数据导入到KUBE-SVC-XXX链里
 ```
 -A KUBE-NODEPORTS -p tcp -m comment --comment "default/test-headless:dns" -m tcp --dport 32389 -j KUBE-MARK-MASQ
 -A KUBE-NODEPORTS -p tcp -m comment --comment "default/test-headless:dns" -m tcp --dport 32389 -j KUBE-SVC-ULJGWT2JCBL7SVE6
