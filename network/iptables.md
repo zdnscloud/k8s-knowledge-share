@@ -1,45 +1,71 @@
-# iptables基础
-规则（rules）其实就是网络管理员预定义的条件，规则一般的定义为“如果数据包头符合这样的条件，就这样处理这个数据包”。规则存储在内核空间的信息包过滤表中，这些规则分别指定了源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等。当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒绝（reject）和丢弃（drop）等。配置防火墙的主要工作就是添加、修改和删除这些规则。
-# 实现原理
-Linux上防火墙实际是通过内核的netfilter来实现的，iptables和firewalld仅仅是一个维护和管理工具。
+# iptables/netfilter
+Netfilter是由Rusty Russell提出的Linux2.4内核防火墙框架，该框架可实现安全策略应用中的许多功能，如数据包过滤、数据包处理、地址伪装、透明代理、动态网络地址转换（Network Address Translation,Nat），以及基于用户及媒体访问控制（Media Access Control,MAC）地址的过滤和基于状态的过滤、包限速等。
 
-在CentOS7上，执行systemctl stop firewalld后，并不会禁用netfilter功能，也就是说，数据包的匹配过滤仍然进行，只是会清空规则。此时通过iptables -S会看到，INPUT、FORWARD、OUTPUT链策略均为ACCEPT，即全部放行
+Netfilter是Linux操作系统核心层内部的一个数据包处理模块，它具有如下功能：
+- 网络地址转换（Network Address Translate）
+- 数据包内容修改
+- 数据包过滤
+
+Netfiler平台中制定了数据包的五个挂载点（Hook Point，可以理解为回调函数点，数据包到达这些位置时会主动调用我们的函数，使得我能有机会能在数据包路由的时候改变它的方向、内容），这5个挂载点分别是PRE_POUTING、INPUT、OUTPUT、FORWARD、POST_ROUTING
+
+Netfilter所设置的规则是存放在内核空间的，而iptables是一个应用层的应用程序，它通过Netfilter放出的接口来对存放在内核空间的Netfilter配置表进行修改。这些表由表tables、链chains、规则rules组成，iptables在应用层负责修改这个文件，类似的还有firewalld
+
+表table、链chain实际上是netfilter的两个维度，其中
+- 表示按照对数据包的操作区分的
+- 链是按照不同的Hook点区分的
+
+# 工作层面
+  ![""](pictures/iptables-in-stack.png)
+
+# 规则
+规则（rules）其实就是网络管理员预定义的条件，规则一般的定义为“如果数据包头符合这样的条件，就这样处理这个数据包”。规则存储在内核空间的信息包过滤表中，这些规则分别指定了源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等。当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒绝（reject）和丢弃（drop）等。配置防火墙的主要工作就是添加、修改和删除这些规则
 
 # 五条链
 * PREROUTING 链：数据包进入路由之前，可以在此处进行 DNAT；_所有的数据包进来的时侯都先由这个链处理_
 * INPUT 链：一般处理本地进程的数据包，目的地址为本机；
-* FORWARD 链：一般处理转发到其他机器或者 network namespace 的数据包；
+* FORWARD 链：一般处理转发到其他机器或者 network namespace 的数据包；_只有在网卡个数>=2的系统中才具有此功能_
 * OUTPUT 链：原地址为本机，向外发送，一般处理本地进程的输出数据包；
 * POSTROUTING 链：发送到网卡之前，可以在此处进行 SNAT；<font color=#0099ff>_所有的数据包出来的时侯都先由这个链处理_</font> 
 
 # 五张表
 ## filter
-用途：用于控制到达某条链上的数据包是继续放行、直接丢弃(drop)还是拒绝(reject)
-
-三个链：INPUT、FORWARD、OUTPUT
-
-内核模块: iptables_filter
+  - 用途：用于控制到达某条链上的数据包是继续放行、直接丢弃(drop)还是拒绝(reject)
+  - 内核模块: iptables_filter
+  
 ## nat 表
-用途：network address translation 网络地址转换，用于修改数据包的源地址和目的地址
+  - 用途：network address translation 网络地址转换，用于修改数据包的源地址和目的地址
+  - 内核模块：iptable_nat 
+  
+> 3种转换
+> - DNAT：改变数据包的目的地址使其能够重路由到某台机器（使公网能够访问局域网的机器）
+> - SNAT：改变数据包的源地址（使局域网的机器能够访问公网）
+> - NASQUERADE：和SNAT类似，但SNAT必须指明IP，而NASQUERADE自动获取网卡当前IP地址来做SNAT（拨号上网）
 
-三个链：PREROUTING、POSTROUTING、OUTPUT
-
-内核模块：iptable_nat 
 ## mangle
-用途：用于修改数据包的 IP 头信息
+  - 用途：用于修改数据包的 IP 头信息
+  - 内核模块：iptable_mangle 
+  
+> 修改的内容
+> - TOS：数据包的服务类型
+> - TTL：数据包的生存时间
+> - MARK：打标记，后面通过标记来配置带宽限速和做基于请求分类
 
-五个链：PREROUTING、POSTROUTING、INPUT、OUTPUT、FORWARD
-
-内核模块：iptable_mangle 
 ## raw 
-用途：iptables 是有状态的，其对数据包有链接追踪机制，连接追踪信息在 /proc/net/nf_conntrack 中可以看到记录，而 raw 是用来去除链接追踪机制的
+  - 用途：iptables 是有状态的，其对数据包有链接追踪机制，连接追踪信息在 /proc/net/nf_conntrack 中可以看到记录，而 raw 是用来去除链接追踪机制的。一但用户使用了RAW表,在某个链 上,RAW表处理完后,将跳过NAT表和 ip_conntrack处理,即不再做地址转换和数据包的链接跟踪处理了
+  - 内核模块：iptable_raw 
+  
+> 数据包被跟踪连接的4种状态
+> - NEW：该包想要开始一个连接（重新连接、连接重定向）
+> - RELATED：该包属于某一个已经建立的连接所建立的新连接。例如FTP的数据传输连接就是控制连接所RELATED出来的新连接
+> - ESTABLISHED：只要发送并接到应答，一个数据连接从NEW变为ESTABLISHED，而且该状态会持续匹配这个连接的后续数据包
+> - INVALID：数据包不能被识别属于哪个连接或者没有任何状态。如内存溢出、错误的ICMP信息，一般应该DROP这个状态的数据包
 
-两个链：OUTPUT、PREROUTING
-
-内核模块：iptable_raw 
 ## security 
-最不常用的表，用在 SELinux 上
-
+  最不常用的表，用在 SELinux 上
+  
+## 表链关系
+  ![""](pictures/table-chain.png)
+  
 # 流程
 这五张表是对 iptables 所有规则的逻辑集群且是有顺序的，当数据包到达某一条链时会按表的顺序进行处理，表的优先级为：raw-->mangle-->nat-->filter-->security
 
