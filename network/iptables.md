@@ -1,24 +1,40 @@
 # iptables/netfilter
 Netfilter是由Rusty Russell提出的Linux2.4内核防火墙框架，该框架可实现安全策略应用中的许多功能，如数据包过滤、数据包处理、地址伪装、透明代理、动态网络地址转换（Network Address Translation,Nat），以及基于用户及媒体访问控制（Media Access Control,MAC）地址的过滤和基于状态的过滤、包限速等。
 
-Netfilter是Linux操作系统核心层内部的一个数据包处理模块，它具有如下功能：
-- 网络地址转换（Network Address Translate）
-- 数据包内容修改
-- 数据包过滤
-
-Netfiler平台中制定了数据包的五个挂载点（Hook Point，可以理解为回调函数点，数据包到达这些位置时会主动调用我们的函数，使得我能有机会能在数据包路由的时候改变它的方向、内容），这5个挂载点分别是PRE_POUTING、INPUT、OUTPUT、FORWARD、POST_ROUTING
+Netfilter平台中制定了数据包的五个挂载点（Hook Point，可以理解为回调函数点，数据包到达这些位置时会主动调用我们的函数，使得我能有机会能在数据包路由的时候改变它的方向、内容），这5个挂载点分别是PRE_OUTING、INPUT、OUTPUT、FORWARD、POST_ROUTING
 
 Netfilter所设置的规则是存放在内核空间的，而iptables是一个应用层的应用程序，它通过Netfilter放出的接口来对存放在内核空间的Netfilter配置表进行修改。这些表由表tables、链chains、规则rules组成，iptables在应用层负责修改这个文件，类似的还有firewalld
 
-表table、链chain实际上是netfilter的两个维度，其中
-- 表示按照对数据包的操作区分的
-- 链是按照不同的Hook点区分的
+> 表table、链chain实际上是netfilter的两个维度，其中
+> - 表：按照对数据包的不同操作区分的
+> - 链：按照不同的Hook点区分的
 
 # 工作层面
   ![""](pictures/iptables-in-stack.png)
 
 # 规则
 规则（rules）其实就是网络管理员预定义的条件，规则一般的定义为“如果数据包头符合这样的条件，就这样处理这个数据包”。规则存储在内核空间的信息包过滤表中，这些规则分别指定了源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等。当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒绝（reject）和丢弃（drop）等。配置防火墙的主要工作就是添加、修改和删除这些规则
+
+## 匹配条件
+- s: 源IP
+- sport: 源端口
+- d: 目的IP
+- dport：目的端口
+- p：协议（4层协议TCP/UDP）
+
+## 处理动作
+* ACCEP：接收数据包，跳往下一个chain
+* REJECT：拦阻，并通过发送方，中止
+* DROP：丢弃数据包，中止
+* REDIRECT：重定向、映射、透明代理，将包导向到另一个端口PNAT，继续
+* SNAT：源地址转换，跳往下一个chain
+* DNAT：目标地址转换，跳往下一个chain
+* MASQUERADE：ip伪装(NAT)，改写包源IP，跳往下一个chain
+* LOG：记录日志，继续
+* MORROR：对调源IP和目的IP，中止
+* QUEUE：将包交给其他程序处理，中止
+* RETURN：结束当前，返回主链，适用于自定义链，返回
+* MARK：染色，继续
 
 # 五条链
 * PREROUTING 链：数据包进入路由之前，可以在此处进行 DNAT；_所有的数据包进来的时侯都先由这个链处理_
@@ -72,19 +88,6 @@ Netfilter所设置的规则是存放在内核空间的，而iptables是一个应
 iptables 的工作流程如下图所示
   ![""](pictures/iptables-Process-Flow.png)
 
-# 动作
-* accept:接收数据包，跳往下一个chain
-* reject:拦阻，并通过发送方，中止
-* drop:丢弃数据包，中止
-* redirect:重定向、映射、透明代理，将包导向到另一个端口PNAT，继续
-* snat:源地址转换，跳往下一个chain
-* dnat:目标地址转换，跳往下一个chain
-* masquerade:ip伪装(NAT)，改写包源IP，跳往下一个chain
-* log:记录日志，继续
-* mirror:对调源IP和目的IP，中止
-* queue:将包交给其他程序处理，中止
-* return:结束当前，返回主链，适用于自定义链，返回
-* mark:染色，继续
 
 # 命令
 ## 格式
