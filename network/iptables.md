@@ -1,7 +1,7 @@
 # iptables/netfilter
 Netfilter是由Rusty Russell提出的Linux2.4内核防火墙框架，该框架可实现安全策略应用中的许多功能，如数据包过滤、数据包处理、地址伪装、透明代理、动态网络地址转换（Network Address Translation,Nat），以及基于用户及媒体访问控制（Media Access Control,MAC）地址的过滤和基于状态的过滤、包限速等。
 
-Netfilter平台中制定了数据包的五个挂载点（Hook Point，可以理解为回调函数点，数据包到达这些位置时会主动调用我们的函数，使得我能有机会能在数据包路由的时候改变它的方向、内容），这5个挂载点分别是PRE_OUTING、INPUT、OUTPUT、FORWARD、POST_ROUTING
+Netfilter平台中制定了数据包的五个挂载点（Hook Point，可以理解为回调函数点，数据包到达这些位置时会主动调用我们的函数，使得我能有机会能在数据包路由的时候改变它的方向、内容），这5个挂载点分别是PRE_ROUTING、INPUT、OUTPUT、FORWARD、POST_ROUTING
 
 Netfilter所设置的规则是存放在内核空间的，而iptables是一个应用层的应用程序，它通过Netfilter放出的接口来对存放在内核空间的Netfilter配置表进行修改。这些表由表tables、链chains、规则rules组成，iptables在应用层负责修改这个文件，类似的还有firewalld
 
