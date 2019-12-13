@@ -3,7 +3,7 @@
 Open Container Initiative(OCI): 由docker和其他container的领军企业于2015-6建立，致力于runtime-spec和image-spec，runtime-spec概述了配置、执行环境和容器生命周期。image-spec定义了oci image，主要包含index、manifest、filesystem layers和configuration文件，概述如何下载、解压runtime所运行的文件系统
 
 ## Media Types
-* 类型和它所代表的资源
+* 类型和它所代表的资源，格式为application/vnd.oci.＋关键字＋版本＋文件格式
   * application/vnd.oci.descriptor.v1+json: Content Descriptor
   * application/vnd.oci.layout.header.v1+json: OCI Layout
   * application/vnd.oci.image.index.v1+json: Image Index
@@ -21,10 +21,12 @@ Open Container Initiative(OCI): 由docker和其他container的领军企业于201
 ![](media-types.png)
 
 ## Content Descriptor
-* 通过Descriptor可以知道各个组件的组成关系，嵌入在其他文件中的描述性信息。
+* 通过Descriptor可以知道各个组件的组成关系，以及资源属性，Descriptor是嵌入在其他文件中的描述性信息。
 * Descriptor包含以下基础属性
   * mediaType: 所描述的资源
-  * digest：资源内容识别码，唯一的表示一段内容，通过digest可以检查内容是否被更改过，digest由algorithm:encoded组成，algorithm如sha256、sha512，encoded表示内容的hash值，如sha256:45d437916d5781043432f2d72608049dcf74ddbd27daa01a25fa63c8f1b9adc4
+  * digest：资源内容识别码，唯一的表示一段内容，通过digest可以检查内容是否被更改过，digest由algorithm:encoded组成，algorithm如sha256、sha512，encoded表示内容的hash值，如
+  
+		sha256:45d437916d5781043432f2d72608049dcf74ddbd27daa01a25fa63c8f1b9adc4
   * size：所描述资源的大小(bytes)
   * urls: mediaType所描述的资源的path
   * annotations：注释
@@ -32,29 +34,18 @@ Open Container Initiative(OCI): 由docker和其他container的领军企业于201
 ## Image Layout
 * 通过skopeo工具可以从docker hub上拉取image并保存成oci的layout
 
+		git clone https://github.com/containers/skopeo.git
+		
+		make binary-static DISABLE_CGO=1
+		sudo make install
+
 		./skopeo copy docker://docker.io/ubuntu oci:ubuntu
+		
+* OCI image layout 是内容可寻址blobs和位置可寻址refs的目录结构，refs目录下是image版本描述文件，不一定存在，image layou目录结构如下：
 		
 		cd ubuntu && ls 
 		blobs  index.json  oci-layout
 		
-* OCI image layout 是内容可寻址blobs和位置可寻址refs的目录结构, image layou目录结构如下：
-  
-  * blobs目录
-    * 包含各种算法的子目录，算法目录下包含实际内容
-    * blobs/<alg>/<encoded> 与 digest <alg>:<encoded> 匹配，如：blobs/sha256/
-45d437916d5781043432f2d72608049dcf74ddbd27daa01a25fa63c8f1b9adc4，与之匹配的digest就是sha256:45d437916d5781043432f2d72608049dcf74ddbd27daa01a25fa63c8f1b9adc4
-	
-			ls blobs/
-			sha256
-			
-			ls blobs/sha256/
-			45d437916d5781043432f2d72608049dcf74ddbd27daa01a25fa63c8f1b9adc4
-			8c3b70e3904492c753652606df4726430426f42ea56e06ea924d6fea7ae162a1
-			48a778107e9a21fac83bd4a1f74d4f91c0ad881169f63660da488236e148455d
-			910b24073dd40c7834406a9bee144ae815cf81d0d648769430e58561ed99497c
-			7ddbc47eeb70dc7f08e410a6667948b87ff3883024eb41478b44ef9a81bf400c
-			c1bbdc448b7263673926b8fe2e88491e5083a8b4b06ddfabf311f2fc5f27e2ff
-
   * oci-layout文件：所使用image layout的版本信息 imageLayoutVersion
   
 		cat oci-layout 
@@ -72,8 +63,23 @@ Open Container Initiative(OCI): 由docker和其他container的领军企业于201
     		],
     		"schemaVersion": 2
 		}
+		
+  * blobs目录
+    * 包含各种算法的子目录，算法目录下包含实际内容，包含manifest、config.json和layers文件
+    * blobs/<alg>/<encoded> 与 digest <alg>:<encoded> 匹配，如：blobs/sha256/
+45d437916d5781043432f2d72608049dcf74ddbd27daa01a25fa63c8f1b9adc4，与之匹配的digest就是sha256:45d437916d5781043432f2d72608049dcf74ddbd27daa01a25fa63c8f1b9adc4
+	
+			ls blobs/
+			sha256
+			
+			ls blobs/sha256/
+			45d437916d5781043432f2d72608049dcf74ddbd27daa01a25fa63c8f1b9adc4
+			8c3b70e3904492c753652606df4726430426f42ea56e06ea924d6fea7ae162a1
+			48a778107e9a21fac83bd4a1f74d4f91c0ad881169f63660da488236e148455d
+			910b24073dd40c7834406a9bee144ae815cf81d0d648769430e58561ed99497c
+			7ddbc47eeb70dc7f08e410a6667948b87ff3883024eb41478b44ef9a81bf400c
+			c1bbdc448b7263673926b8fe2e88491e5083a8b4b06ddfabf311f2fc5f27e2ff
 
-  
 ## Image Index
 * 包含多个manifest信息的文件，每个manifest的digest与blobs/sha256目录下文件名对应
 * 基础属性
@@ -89,12 +95,40 @@ Open Container Initiative(OCI): 由docker和其他container的领军企业于201
     * digest：manifest文件摘要
     * size：manifest文件大小
   * annotations：index文件的注释
+* 官方范例
 
+		{
+			"schemaVersion": 2,
+			"manifests": [
+			{
+				"mediaType": "application/vnd.oci.image.manifest.v1+json",
+				"size": 7143,
+				"digest": "sha256:e692418e4cbaf90ca69d05a66403747baa33ee08806650b51fab815ad7fc331f",
+				"platform": {
+					"architecture": "ppc64le",
+					"os": "linux"
+				}
+			},
+    		{
+    			"mediaType": "application/vnd.oci.image.manifest.v1+json",
+    			"size": 7682,
+    			"digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
+    			"platform": {
+        			"architecture": "amd64",
+        			"os": "linux"
+        		}
+        	}
+        ],
+        	"annotations": {
+        		"com.example.key1": "value1",
+        		"com.example.key2": "value2"
+        	}
+		}
 
 ## Image Manifest
 * schemaVersion: manifest schema的版本信息
-* 包含image config 信息，mediaType为application/vnd.oci.image.config.v1+json， 通过config.digest确定在blobs/sha256下的文件名字，可以找到image的config文件
-* 包含image layer 信息, mediaType为application/vnd.oci.image.layer.v1.tar+gzip，可以看到压缩格式为tar+gzip，ubuntu image分为4层
+* config: image config文件信息，mediaType为application/vnd.oci.image.config.v1+json， 通过config.digest确定在blobs/sha256下的文件名字，可以找到image的config文件
+* layers: image layer文件信息, ubuntu的layers mediaType为application/vnd.oci.image.layer.v1.tar+gzip，可以看到压缩格式为tar+gzip，ubuntu image layers分为4层
 
 		{
     		"config": {
@@ -213,8 +247,23 @@ Open Container Initiative(OCI): 由docker和其他container的领军企业于201
     * metadata/sha256目录存放image的其他信息，如parent信息	
   * layerdb目录存放layer属性信息，通过计算每一层的chain_id来查看每个layer的属性
   
+		//第一层diff_id就是chain_id
 		ls layerdb/sha256/cc967c529ced563b7746b663d98248bc571afdb3c012019d7f54d6c092793b8b/
-		cache-id  diff  size 
+		cache-id  diff  size  tar-split.json.gz
+		
+		//第二层chain_id计算
+		echo -n "sha256:cc967c529ced563b7746b663d98248bc571afdb3c012019d7f54d6c092793b8b sha256:2c6ac8e5063e35e91ab79dfb7330c6154b82f3a7e4724fb1b4475c0a95dfdd33" | sha256sum
+		565879c6effe6a013e0b2e492f182b40049f1c083fc582ef61e49a98dca23f7e
+		ls image/aufs/layerdb/sha256/565879c6effe6a013e0b2e492f182b40049f1c083fc582ef61e49a98dca23f7e/
+		cache-id  diff  parent  size  tar-split.json.gz
+		
+		//第三层chain_id计算
+		echo -n "sha256:565879c6effe6a013e0b2e492f182b40049f1c083fc582ef61e49a98dca23f7e sha256:6c01b5a53aac53c66f02ea711295c7586061cbe083b110d54dafbeb6cf7636bf" | sha256sum
+		b53837dafdd21f67e607ae642ce49d326b0c30b39734b6710c682a50a9f932bf
+		
+		//第四层chain_id计算
+		echo -n "sha256:b53837dafdd21f67e607ae642ce49d326b0c30b39734b6710c682a50a9f932bf sha256:e0b3afb09dc386786d49d6443bdfb20bc74d77dcf68e152db7e5bb36b1cca638" | sha256sum
+		4fc26b0b0c6903db3b4fe96856034a1bd9411ed963a96c1bc8f03f18ee92ac2a
 		
     * cache-id文件名字是docker下载layer的时候在本地生成的一个随机uuid, 指向真正存放layer目录的文件，
       * /var/lib/docker/aufs/layers: layer的所有父layers的cache-id，最底层的layer内容为空
@@ -222,3 +271,4 @@ Open Container Initiative(OCI): 由docker和其他container的领军企业于201
     * diff文件包含layer的diff_id
     * size文件保存当前layer的大小，单位是字节
     * 如果layer不是最底层，还有parent文件，存放当前layer的父layer的chain_id
+    * tar-split.json.gz，layer压缩包的split文件，通过这个文件可以还原layer的tar包，在docker save导出image的时候会用到
