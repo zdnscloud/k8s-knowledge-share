@@ -30,16 +30,6 @@
 
 &emsp;
 
-## docker的基本原理
-对 Docker 项目来说，它最核心的原理实际上就是为待创建的用户进程： 
-
-* 启用 Linux Namespace 配置；  
- * 用于隔离文件系统，进程和网络,是修改进程视图的主要方法
-* 设置指定的 Cgroups 参数；
- * control group,将CPU及内存之类的资源独立分配给每个docker容器,用来制造约束的主要手段
-* 切换进程的根目录（Change Root）。  
-&emsp;
-
 
 ## docker的基本原理
 对 Docker 项目来说，它最核心的原理实际上就是为待创建的用户进程： 
