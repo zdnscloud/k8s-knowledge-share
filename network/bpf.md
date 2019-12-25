@@ -1,4 +1,8 @@
 # what is eBPF
+1. BPF is a highly flexible and efficient virtual machine-like construct in the 
+   Linux kernel allowing to execute bytecode at various hook points in a safe manner. 
+1. It is used in a number of Linux kernel subsystems, most prominently networking, 
+   tracing and security
 1. Berkeley Packet Filter (1992) provide a way to filter packets in kernel
 1. In 2013, completely rewritten by Alexei Starovoitov
 1. BPF == eBPF(cBPF)
