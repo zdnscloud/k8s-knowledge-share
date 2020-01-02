@@ -50,7 +50,15 @@ Prow is used by the following organizations and projects:
 
 ### 部署Prow
 
-创建Github secrets
+#### 创建Github bot账号
+
+配置账户的 `personal access token`
+
+* Must have the `public_repo` and `repo:status` scopes
+* Add the `repo` scope if you plan on handing private repos
+* Add the `admin_org:hook` scope if you plan on handling a github org
+
+##### 创建Github secrets
 
 1. 创建 `hmac-token` 用于Github webhooks 的认证
 
@@ -65,4 +73,39 @@ kubectl create secret generic hmac-token --from-file=hmac=/path/to/hook/secret
 # https://github.com/settings/tokens
 kubectl create secret generic oauth-token --from-file=oauth=/path/to/oauth/secret
 ```
+
+
+#### 创建webhook
+
+配置ingress，default/ing
+
+设置好ingress域名
+
+打开github repo的setting页面设置webook，URL设置为ingress-domain/hook, secret为webook创建的secret
+
+
+这样一个prow集群配置完成
+
+
+### 添加 plugins
+
+增加configmap plugins
+
+内容为：
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plugins
+  namespace: default
+data:
+  plugins.yaml: |
+    plugins:
+      ORG/PROJECT:
+      - size
+```
+
+会自动在pull-request上添加一个size标签
+
 
