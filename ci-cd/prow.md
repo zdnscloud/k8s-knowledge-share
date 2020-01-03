@@ -74,6 +74,38 @@ kubectl create secret generic hmac-token --from-file=hmac=/path/to/hook/secret
 kubectl create secret generic oauth-token --from-file=oauth=/path/to/oauth/secret
 ```
 
+#### 安装`prow`到集群
+
+```
+kubectl apply -f https://github.com/gsmlg/pipeline/raw/master/updated_prow.yaml
+```
+
+默认会安装到default namesapce下，Job运行在test-pods namsapces下
+
+通过命令查看是否安装完成
+
+```
+# kubectl get deployments
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+deck               2/2     2            2           21h
+hook               2/2     2            2           21h
+horologium         1/1     1            1           21h
+plank              1/1     1            1           21h
+sinker             1/1     1            1           21h
+statusreconciler   1/1     1            1           21h
+tide               1/1     1            1           21h
+```
+
+配置ingress
+
+```
+# 查看ingress
+kubectl get ingress ing
+
+# 编辑ingress
+kubectl edit ingress ing
+
+```
 
 #### 创建webhook
 
