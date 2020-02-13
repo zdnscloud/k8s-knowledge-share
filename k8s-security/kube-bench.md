@@ -1,4 +1,4 @@
-		<img src="./kube-bench.png" alt="kube-bench logo" style="zoom:50%;" />
+![img](./kube-bench.png)
 
 ​		容器安全厂商Aquq以CIS（ Center for Internet Security）推出的K8s Benchmark作为基础，开源出了一套安全检测工具Kube-bench。它是一个Go应用程序，它通过运行CIS Kubernetes Benchmark中记录的标准来检查Kubernetes是否已安全部署。
 
