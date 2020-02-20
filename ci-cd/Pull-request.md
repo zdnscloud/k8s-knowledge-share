@@ -67,11 +67,11 @@ ci系统可以根据结果给对应的pull request打上标签，标明是否完
 
 1. 需要开发一个功能时，创建一个issue，label标记为feature
 2. 这时，对应开发接到任务，创建分支，进行开发
-3. 开发完成后，发起pull request，并指定修复的issue，如果需要review，则指定reviewer
+3. 开发完成后，发起pull request，并指定修复的issue，指定reviewer来进行review
 4. review前先进行对应的自动化检查，通过后通知对应人员，失败则返回开发修复
   * 如果发现冲突，则需要将目标分支，合并过来，手动解决冲突后，提交
 5. reviewer收到通知准备review
-6. review完成后标记reviewed、need-test，转到测试流程，若review意见需要修改，则标记后，再进入步骤2
+6. reviewer在review之后，如果没有问题，转给开发，开发这时候应该通知测试可以开始测试，若review意见需要修改，则标记后，再进入步骤2
 7. 测试拿到pull request后进行测试
 8. 测试完成后进行标记，成功标记测试完成待合并，失败转回步骤2
 9. 批准pull request合并，删除对应分支
