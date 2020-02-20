@@ -24,7 +24,7 @@
 1. PipelineRun CRD   
     Runtime instance of Pipeline
 
-1. PipelineResource  
+1. PipelineResource CRD    
    Runtime info (parameter for task like image registry, git repo)
 
 
@@ -192,5 +192,5 @@ spec:
 ```
 
 # Reference
-https://github.com/IBM/tekton-tutorial
+https://github.com/IBM/tekton-tutorial    
 https://www.youtube.com/watch?v=JhxydV-v2Og
