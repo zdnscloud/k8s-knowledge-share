@@ -24,7 +24,7 @@
 1. PipelineRun CRD   
     Runtime instance of Pipeline
 
-1. PipelineResource  
+1. PipelineResource CRD
    Runtime info (parameter for task like image registry, git repo)
 
 
