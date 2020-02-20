@@ -65,13 +65,15 @@ ci系统可以根据结果给对应的pull request打上标签，标明是否完
 
 ### 流程举例
 
-- 需要开发一个功能时，创建一个issue，label标记为feature
-- 这时，对应开发接到任务，创建分支，进行开发
-- 开发完成后，发起pull request，并指定修复的issue，如果需要review，则指定reviewer，并分配给测试
-- review与测试之前先进行对应的自动化检查，通过后通知对应人员，失败则返回开发修复
+1. 需要开发一个功能时，创建一个issue，label标记为feature
+2. 这时，对应开发接到任务，创建分支，进行开发
+3. 开发完成后，发起pull request，并指定修复的issue，如果需要review，则指定reviewer
+4. review前先进行对应的自动化检查，通过后通知对应人员，失败则返回开发修复
   * 如果发现冲突，则需要将目标分支，合并过来，手动解决冲突后，提交
-- reviewer收到通知准备review
-- 测试拿到pull request后进行测试
-- review与测试完成后进行标记
-- 批准pull request合并，删除对应分支
-
+5. reviewer收到通知准备review
+6. review完成后标记reviewed、need-test，转到测试流程，若review意见需要修改，则标记后，再进入步骤2
+7. 测试拿到pull request后进行测试
+8. 测试完成后进行标记，成功标记测试完成待合并，失败转回步骤2
+9. 批准pull request合并，删除对应分支
+   * 步骤4后，如果base分支（通常是master）发生变化，如果出现合并冲突，这个时候需要将master合并到分支，并解决冲突
+   * pull request合并可以使用squash，来将所有提交合并，使用pull request消息来代替commit信息，方便后续生成release node
