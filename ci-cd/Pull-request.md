@@ -85,7 +85,8 @@ hub pull-request \
 成功添加label：test/passed，@开发；
 失败添加label：test/failed，写失败说明，@开发。
 8. 开发看到test/passed，沟通可以合并后，通过pull request合并，并删除对应分支
-补充：
+
+* 补充：
     * 如果发现冲突，则需要将目标分支，合并过来，手动解决冲突后，提交
  	* 步骤4后，如果base分支（通常是master）发生变化，如果出现合并冲突，这个时候需要将master合并到分支，并解决冲突
     * Pull request合并可以使用squash and merge方式，会将分支修改所有提交合并为一个commit，使用pull request信息来代替commit信息，方便后续生成release node
