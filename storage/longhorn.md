@@ -35,7 +35,9 @@ longhorn主要有两部分
 - 控制器协调快照和备份操作。
 - 控制器和副本包装为Docker容器。
 
+### 架构图
 ![avatar](longhorn-tgt.png)
+### volume controller
 ![avatar](volume-replica.jpeg)
 
 ### 两种工作模式
