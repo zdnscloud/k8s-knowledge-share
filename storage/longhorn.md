@@ -11,9 +11,13 @@ Longhorn是Kubernetes的分布式块存储系统。 它使用容器和微服务�
 - 自动化无中断升级
 - 直观的GUI仪表板
 
-> 当前是alpha 状态，最新版本v0.6.2
+> 当前是Beta 状态，最新版本v0.7.0
 
-> 最新的v0.7.0 已经是beta版本了，但要求k8s>v1.14.0
+# 要求
+- Docker v1.13+
+- k8s v1.14+
+- 节点安装并启动open-iscsi
+- 节点文件系统支持ext4/XFS
 
 # 说明
 longhorn主要有两部分
@@ -136,7 +140,6 @@ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/depl
 
 # 使用
 支持FlexVolume 和CSI （v0.4.0之后）。CSI是首选
-> 前提是节点安装open-iscsi
 
 kubectl create -f https://raw.githubusercontent.com/longhorn/longhorn/master/examples/storageclass.yaml
 
@@ -218,6 +221,54 @@ spec:
 > 注意：由于pvc的名称改变了，因此新的sts与之前的sts不能一样。也可以删除原有的pvc，在创建新的pvc时使用原有的pvc名称，这样就可以使用之前的sts了
 * 5： 进入pod，查看数据，应该是前面的数据2
 
+# 块设备
+longhorn-engine
+
+pkg/controller/control.go 
+```
+c.frontend.Startup(c.Name, c.size, c.sectorSize, c)
+```
+pkg/frontend/tgt/frontend.go 
+```
+t.s.Startup(name, size, sectorSize, rw)  	//启动socket
+t.dev.Start()							//创建并登陆tgt
+```
+
+创建socket
+```
+SocketDirectory = "/var/run"
+filepath.Join(SocketDirectory, "longhorn-"+t.Volume+".sock")
+
+func (t *Socket) startSocketServer(rw types.ReaderWriterAt) error {}
+
+收到请求后进行数据读写
+server := dataconn.NewServer(c, NewDataProcessorWrapper(rw))
+server.Handle()
+func (d DataProcessorWrapper) ReadAt(p []byte, off int64) (n int, err error) {
+    return d.rw.ReadAt(p, off)
+}
+
+func (d DataProcessorWrapper) WriteAt(p []byte, off int64) (n int, err error) {
+    return d.rw.WriteAt(p, off)
+}
+
+func (d DataProcessorWrapper) PingResponse() error {
+    return nil
+}
+```
+创建tgt磁盘
+go-iscsi-helper/longhorndev/dev.go
+```
+d.WaitForSocket(stopCh)
+iscsidev.NewDevice
+d.scsiDevice.CreateTarget()	//创建tgt
+d.scsiDevice.StartInitator()	//在pod所在主机上登陆iscsi
+d.createDev()				//使用mknod创建块设备
+```
+
+Q&A
+Q: 节点上fdisk看到iscsi 发现的磁盘一般是/dev/sd[a-z],但df看到pod挂载的盘却是/dev/longhorn/pvc-xxx
+A: 函数 createDev 中使用了mknod，根据iscsi盘的主次设备号（major、minor）创建了便于用户识别的块设备
 
 # ISCSI
 ##	Target端
