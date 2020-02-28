@@ -36,6 +36,7 @@ longhorn主要有两部分
 - 控制器和副本包装为Docker容器。
 
 ![avatar](longhorn-tgt.png)
+![avatar](volume-replica.jpeg)
 
 ### 两种工作模式
 - engine:连接到所有副本，写操作同步到所有副本，读操作任一一个
@@ -224,11 +225,11 @@ spec:
 # 块设备
 longhorn-engine
 
-pkg/controller/control.go 
+longhorn-engine/pkg/controller/control.go 
 ```
 c.frontend.Startup(c.Name, c.size, c.sectorSize, c)
 ```
-pkg/frontend/tgt/frontend.go 
+longhorn-engine/pkg/frontend/tgt/frontend.go 
 ```
 t.s.Startup(name, size, sectorSize, rw)  	//启动socket
 t.dev.Start()							//创建并登陆tgt
@@ -266,6 +267,76 @@ d.scsiDevice.StartInitator()	//在pod所在主机上登陆iscsi
 d.createDev()				//使用mknod创建块设备
 ```
 
+数据写入(所有副本同时写)
+longhorn-engine/pkg/controller/replicator.go 
+```
+n, err := r.writer.WriteAt(p, off)
+```
+longhorn-engine/pkg/controller/multi_writer_at.go 
+```
+func (m *MultiWriterAt) WriteAt(p []byte, off int64) (n int, err error) {
+    errs := make([]error, len(m.writers))
+    errored := false
+    wg := sync.WaitGroup{}
+
+    for i, w := range m.writers {
+        wg.Add(1)
+        go func(index int, w io.WriterAt) {
+            _, err := w.WriteAt(p, off)
+            if err != nil {
+                errored = true
+                errs[index] = err
+            }
+            wg.Done()
+        }(i, w)
+    }
+
+    wg.Wait()
+    if errored {
+        return 0, &MultiWriterError{
+            Writers: m.writers,
+            Errors:  errs,
+        }
+    }
+
+    return len(p), nil
+}
+```
+数据读取（）
+longhorn-engine/pkg/controller/replicator.go 
+```
+func (r *replicator) ReadAt(buf []byte, off int64) (int, error) {
+    var (
+        n   int
+        err error
+    )
+
+    if !r.backendsAvailable {
+        return 0, ErrNoBackend
+    }
+
+    readersLen := len(r.readers)
+    r.next = (r.next + 1) % readersLen
+    index := r.next
+    retError := &BackendError{
+        Errors: map[string]error{},
+    }
+    for i := 0; i < readersLen; i++ {
+        reader := r.readers[index]
+        n, err = reader.ReadAt(buf, off)
+        if err == nil {
+            break
+        }
+        logrus.Error("Replicator.ReadAt:", index, err)
+        retError.Errors[r.readerIndex[index]] = err
+        index = (index + 1) % readersLen
+    }
+    if len(retError.Errors) != 0 {
+        return n, retError
+    }
+    return n, nil
+}
+```
 Q&A
 Q: 节点上fdisk看到iscsi 发现的磁盘一般是/dev/sd[a-z],但df看到pod挂载的盘却是/dev/longhorn/pvc-xxx
 A: 函数 createDev 中使用了mknod，根据iscsi盘的主次设备号（major、minor）创建了便于用户识别的块设备
