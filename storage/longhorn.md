@@ -116,115 +116,7 @@ Manager作为daemonset运行在所有节点，负责监视本节点上的volume
   代表engine的版本。由于Longhorn引擎是微服务，因此每个卷都可以运行不同版本的引擎映像。当Longhorn Manager升级但引擎尚未升级时，就会发生这种情况。Longhorn Manager使用部署在节点上的引擎二进制文件与卷进行通信。这些引擎二进制文件是使用引擎映像控制器部署的。
 引擎映像控制器还负责创建/删除实例管理器对象，因为引擎的每个版本都需要与相同版本的实例管理器一起运行。
 
-
-
-# 安装
-kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
-
-
-# 配置
-```
-  default-setting.yaml: |-
-    backup-target:					#备份目标（NFS/S3）
-    backup-target-credential-secret:			#备份使用的密钥
-    create-default-disk-labeled-nodes: true		#在带标签（node.longhorn.io/create-default-disk=true ）的节点上创建默认磁盘。默认false，在所有节点创建
-    default-data-path: /var/lib/zcloud/longhorn		#磁盘目录。默认/var/lib/rancher/longhorn 
-    replica-soft-anti-affinity:				#副本调度亲和性。默认true
-    storage-over-provisioning-percentage:		#超出配置存储的百分比（由于使用的linux Sparse File）。默认500
-    storage-minimal-available-percentage:		#磁盘存储最小可用的百分比。默认10
-    upgrade-checker:					#定期检查longhorn版本，有新的时在UI提醒。默认true
-    default-replica-count:				#副本数。默认3
-    guaranteed-engine-cpu:				#引擎CPU保证。默认0.2。建议不超过可用CPU的1/4（因为这个会应用于多个pod）
-    default-longhorn-static-storage-class:		#静态存储类名称
-    backupstore-poll-interval: 200			#备份轮询频率，以秒为单位，用以更新volume的上次备份时间。
-    taint-toleration:					#通过给longhorn设置容忍污点，然后给部分节点打上污点，阻止其他workload使用该存储节点
-```
-可以在安装时修改yaml文件，也可以在UI进行修改
-
-# 使用
-支持FlexVolume 和CSI （v0.4.0之后）。CSI是首选
-
-kubectl create -f https://raw.githubusercontent.com/longhorn/longhorn/master/examples/storageclass.yaml
-
-可以创建多个storageclass，并设置
-- diskSelector
-- nodeSelector
-- recurringJobs
-
-
-> 通过CSI创建的volumes  frontend为blockdev。目前还不支持iscsc
-
-
-# 增加磁盘
-* 1：将磁盘格式化后挂载到某个目录
-* 2：ui上编辑node，将挂载目录添加到磁盘列表
-
-另外，可以通过禁用默认的磁盘目录，来避免使用
-
-# 减少磁盘
-* 1：禁止调度
-* 2：没有副本使用当前磁盘目录（找到所有在本节点的副本进行删除）
-
-### 步骤
-* 1： 使用storageclass创建一个sts，写入一些数据
-* 2： 创建snap
-* 3： 再写入一些数据
-* 4： 创建backup
-* 5： 再写入一些数据
-
-# 快照还原
-> 前提：没有被attach
-*   1: 将sts的replicas设置为0，致使pod终止，volume被k8s自动detach
-*   2: 在UI上将volume attach到任一节点上，注意勾选Maintenance  
-*   3: 找到快照进行Revert
-*   4: 在UI上将volume detach 
-*   5: 将sts的replicas设置为1，进入pod，查看数据，应该是前面的数据1
-
-# 备份还原
-> 前提：从备份中创建新的volume
-* 1： UI上找到对应volume的想要恢复的backup，进行Restore，为新的volume设定名称sts-name-0
-* 2： 在K8S中创建pv
-```
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: sts-name-0					#前面新建的volume的名称
-spec:				
-  capacity:
-    storage: 3Gi							#前面新建的volume的大小
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Delete
-  csi:
-    driver: io.rancher.longhorn
-    fsType: ext4
-    volumeAttributes:
-      numberOfReplicas: "3"				#前面新建的volume的副本数
-      staleReplicaTimeout: '30'				
-    volumeHandle: sts-name-0			#前面新建的volume的名称
-  storageClassName: longhorn			#之前pvc的storageclass名称
-```
-* 3:  在K8S中创建pvc
-```
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: longhorn-csi-test-0				#sts中<name of Volume Claim Template>-<name of Stateful Set>-<index> 
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 3Gi
-  storageClassName: longhorn
-  volumeName: csi-test-0				#前面创建的pv的名称
-```
-* 4： 创建sts
-> 注意：由于pvc的名称改变了，因此新的sts与之前的sts不能一样。也可以删除原有的pvc，在创建新的pvc时使用原有的pvc名称，这样就可以使用之前的sts了
-* 5： 进入pod，查看数据，应该是前面的数据2
-
-# 块设备
+# 源码解读（部分）
 longhorn-engine
 
 longhorn-engine/pkg/controller/control.go 
@@ -339,6 +231,115 @@ func (r *replicator) ReadAt(buf []byte, off int64) (int, error) {
     return n, nil
 }
 ```
+
+
+# 安装
+kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
+
+
+# 配置
+```
+  default-setting.yaml: |-
+    backup-target:					#备份目标（NFS/S3）
+    backup-target-credential-secret:			#备份使用的密钥
+    create-default-disk-labeled-nodes: true		#在带标签（node.longhorn.io/create-default-disk=true ）的节点上创建默认磁盘。默认false，在所有节点创建
+    default-data-path: /var/lib/zcloud/longhorn		#磁盘目录。默认/var/lib/rancher/longhorn 
+    replica-soft-anti-affinity:				#副本调度亲和性。默认true
+    storage-over-provisioning-percentage:		#超出配置存储的百分比（由于使用的linux Sparse File）。默认500
+    storage-minimal-available-percentage:		#磁盘存储最小可用的百分比。默认10
+    upgrade-checker:					#定期检查longhorn版本，有新的时在UI提醒。默认true
+    default-replica-count:				#副本数。默认3
+    guaranteed-engine-cpu:				#引擎CPU保证。默认0.2。建议不超过可用CPU的1/4（因为这个会应用于多个pod）
+    default-longhorn-static-storage-class:		#静态存储类名称
+    backupstore-poll-interval: 200			#备份轮询频率，以秒为单位，用以更新volume的上次备份时间。
+    taint-toleration:					#通过给longhorn设置容忍污点，然后给部分节点打上污点，阻止其他workload使用该存储节点
+```
+可以在安装时修改yaml文件，也可以在UI进行修改
+
+# 使用
+支持FlexVolume 和CSI （v0.4.0之后）。CSI是首选
+
+kubectl create -f https://raw.githubusercontent.com/longhorn/longhorn/master/examples/storageclass.yaml
+
+可以创建多个storageclass，并设置
+- diskSelector
+- nodeSelector
+- recurringJobs
+
+
+> 通过CSI创建的volumes  frontend为blockdev。目前还不支持iscsc
+
+
+# 增加磁盘
+* 1：将磁盘格式化后挂载到某个目录
+* 2：ui上编辑node，将挂载目录添加到磁盘列表
+
+另外，可以通过禁用默认的磁盘目录，来避免使用
+
+# 减少磁盘
+* 1：禁止调度
+* 2：没有副本使用当前磁盘目录（找到所有在本节点的副本进行删除）
+
+### 步骤
+* 1： 使用storageclass创建一个sts，写入一些数据
+* 2： 创建snap
+* 3： 再写入一些数据
+* 4： 创建backup
+* 5： 再写入一些数据
+
+# 快照还原
+> 前提：没有被attach
+*   1: 将sts的replicas设置为0，致使pod终止，volume被k8s自动detach
+*   2: 在UI上将volume attach到任一节点上，注意勾选Maintenance  
+*   3: 找到快照进行Revert
+*   4: 在UI上将volume detach 
+*   5: 将sts的replicas设置为1，进入pod，查看数据，应该是前面的数据1
+
+# 备份还原
+> 前提：从备份中创建新的volume
+* 1： UI上找到对应volume的想要恢复的backup，进行Restore，为新的volume设定名称sts-name-0
+* 2： 在K8S中创建pv
+```
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sts-name-0					#前面新建的volume的名称
+spec:				
+  capacity:
+    storage: 3Gi							#前面新建的volume的大小
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  csi:
+    driver: io.rancher.longhorn
+    fsType: ext4
+    volumeAttributes:
+      numberOfReplicas: "3"				#前面新建的volume的副本数
+      staleReplicaTimeout: '30'				
+    volumeHandle: sts-name-0			#前面新建的volume的名称
+  storageClassName: longhorn			#之前pvc的storageclass名称
+```
+* 3:  在K8S中创建pvc
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: longhorn-csi-test-0				#sts中<name of Volume Claim Template>-<name of Stateful Set>-<index> 
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+  storageClassName: longhorn
+  volumeName: csi-test-0				#前面创建的pv的名称
+```
+* 4： 创建sts
+> 注意：由于pvc的名称改变了，因此新的sts与之前的sts不能一样。也可以删除原有的pvc，在创建新的pvc时使用原有的pvc名称，这样就可以使用之前的sts了
+* 5： 进入pod，查看数据，应该是前面的数据2
+
+
 Q&A
 Q: 节点上fdisk看到iscsi 发现的磁盘一般是/dev/sd[a-z],但df看到pod挂载的盘却是/dev/longhorn/pvc-xxx
 A: 函数 createDev 中使用了mknod，根据iscsi盘的主次设备号（major、minor）创建了便于用户识别的块设备
