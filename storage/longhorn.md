@@ -11,9 +11,13 @@ Longhorn是Kubernetes的分布式块存储系统。 它使用容器和微服务�
 - 自动化无中断升级
 - 直观的GUI仪表板
 
-> 当前是alpha 状态，最新版本v0.6.2
+> 当前是Beta 状态，最新版本v0.7.0
 
-> 最新的v0.7.0 已经是beta版本了，但要求k8s>v1.14.0
+# 要求
+- Docker v1.13+
+- k8s v1.14+
+- 节点安装并启动open-iscsi
+- 节点文件系统支持ext4/XFS
 
 # 说明
 longhorn主要有两部分
@@ -31,7 +35,10 @@ longhorn主要有两部分
 - 控制器协调快照和备份操作。
 - 控制器和副本包装为Docker容器。
 
+### 架构图
 ![avatar](longhorn-tgt.png)
+### volume controller
+![avatar](volume-replica.jpeg)
 
 ### 两种工作模式
 - engine:连接到所有副本，写操作同步到所有副本，读操作任一一个
@@ -109,6 +116,121 @@ Manager作为daemonset运行在所有节点，负责监视本节点上的volume
   代表engine的版本。由于Longhorn引擎是微服务，因此每个卷都可以运行不同版本的引擎映像。当Longhorn Manager升级但引擎尚未升级时，就会发生这种情况。Longhorn Manager使用部署在节点上的引擎二进制文件与卷进行通信。这些引擎二进制文件是使用引擎映像控制器部署的。
 引擎映像控制器还负责创建/删除实例管理器对象，因为引擎的每个版本都需要与相同版本的实例管理器一起运行。
 
+# 源码解读（部分）
+longhorn-engine
+
+longhorn-engine/pkg/controller/control.go 
+```
+c.frontend.Startup(c.Name, c.size, c.sectorSize, c)
+```
+longhorn-engine/pkg/frontend/tgt/frontend.go 
+```
+t.s.Startup(name, size, sectorSize, rw)  	//启动socket
+t.dev.Start()							//创建并登陆tgt
+```
+
+创建socket
+```
+SocketDirectory = "/var/run"
+filepath.Join(SocketDirectory, "longhorn-"+t.Volume+".sock")
+
+func (t *Socket) startSocketServer(rw types.ReaderWriterAt) error {}
+
+收到请求后进行数据读写
+server := dataconn.NewServer(c, NewDataProcessorWrapper(rw))
+server.Handle()
+func (d DataProcessorWrapper) ReadAt(p []byte, off int64) (n int, err error) {
+    return d.rw.ReadAt(p, off)
+}
+
+func (d DataProcessorWrapper) WriteAt(p []byte, off int64) (n int, err error) {
+    return d.rw.WriteAt(p, off)
+}
+
+func (d DataProcessorWrapper) PingResponse() error {
+    return nil
+}
+```
+创建tgt磁盘
+go-iscsi-helper/longhorndev/dev.go
+```
+d.WaitForSocket(stopCh)
+iscsidev.NewDevice
+d.scsiDevice.CreateTarget()	//创建tgt
+d.scsiDevice.StartInitator()	//在pod所在主机上登陆iscsi
+d.createDev()				//使用mknod创建块设备
+```
+
+数据写入(所有副本同时写)
+longhorn-engine/pkg/controller/replicator.go 
+```
+n, err := r.writer.WriteAt(p, off)
+```
+longhorn-engine/pkg/controller/multi_writer_at.go 
+```
+func (m *MultiWriterAt) WriteAt(p []byte, off int64) (n int, err error) {
+    errs := make([]error, len(m.writers))
+    errored := false
+    wg := sync.WaitGroup{}
+
+    for i, w := range m.writers {
+        wg.Add(1)
+        go func(index int, w io.WriterAt) {
+            _, err := w.WriteAt(p, off)
+            if err != nil {
+                errored = true
+                errs[index] = err
+            }
+            wg.Done()
+        }(i, w)
+    }
+
+    wg.Wait()
+    if errored {
+        return 0, &MultiWriterError{
+            Writers: m.writers,
+            Errors:  errs,
+        }
+    }
+
+    return len(p), nil
+}
+```
+数据读取（）
+longhorn-engine/pkg/controller/replicator.go 
+```
+func (r *replicator) ReadAt(buf []byte, off int64) (int, error) {
+    var (
+        n   int
+        err error
+    )
+
+    if !r.backendsAvailable {
+        return 0, ErrNoBackend
+    }
+
+    readersLen := len(r.readers)
+    r.next = (r.next + 1) % readersLen
+    index := r.next
+    retError := &BackendError{
+        Errors: map[string]error{},
+    }
+    for i := 0; i < readersLen; i++ {
+        reader := r.readers[index]
+        n, err = reader.ReadAt(buf, off)
+        if err == nil {
+            break
+        }
+        logrus.Error("Replicator.ReadAt:", index, err)
+        retError.Errors[r.readerIndex[index]] = err
+        index = (index + 1) % readersLen
+    }
+    if len(retError.Errors) != 0 {
+        return n, retError
+    }
+    return n, nil
+}
+```
 
 
 # 安装
@@ -136,7 +258,6 @@ kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/depl
 
 # 使用
 支持FlexVolume 和CSI （v0.4.0之后）。CSI是首选
-> 前提是节点安装open-iscsi
 
 kubectl create -f https://raw.githubusercontent.com/longhorn/longhorn/master/examples/storageclass.yaml
 
@@ -218,6 +339,10 @@ spec:
 > 注意：由于pvc的名称改变了，因此新的sts与之前的sts不能一样。也可以删除原有的pvc，在创建新的pvc时使用原有的pvc名称，这样就可以使用之前的sts了
 * 5： 进入pod，查看数据，应该是前面的数据2
 
+
+Q&A
+Q: 节点上fdisk看到iscsi 发现的磁盘一般是/dev/sd[a-z],但df看到pod挂载的盘却是/dev/longhorn/pvc-xxx
+A: 函数 createDev 中使用了mknod，根据iscsi盘的主次设备号（major、minor）创建了便于用户识别的块设备
 
 # ISCSI
 ##	Target端
