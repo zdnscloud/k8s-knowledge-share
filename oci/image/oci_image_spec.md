@@ -273,4 +273,4 @@ Open Container Initiative(OCI): 由docker和其他container的领军企业于201
     * 如果layer不是最底层，还有parent文件，存放当前layer的父layer的chain_id
     * tar-split.json.gz，layer压缩包的split文件，通过这个文件可以还原layer的tar包，在docker save导出image的时候会用到
     
-    ![](oci-image-spec.jpg)
+    ![](oci-image-spec.png)
