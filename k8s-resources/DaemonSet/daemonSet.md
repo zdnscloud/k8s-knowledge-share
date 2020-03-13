@@ -2,7 +2,9 @@
 
 #### DaemonSet 的主要作用
 
-是让你在 Kubernetes 集群里，运行一个 Daemon Pod。 
+是让你在 Kubernetes 集群里，运行一个 Daemon Pod。
+ 
+DaemonSet确保所有(或部分)节点都运行一个Pod的副本。随着节点被添加到集群中，pod也被添加到集群中。当节点从集群中移除时，这些pods将被垃圾收集。删除DaemonSet将清理它创建的pods。
 
 Pod 有如下三个特征：
 * 这个 Pod 运行在 Kubernetes 集群里的每一个节点（Node）上；
