@@ -14,7 +14,7 @@ k3s是微型的kubernetes发行版本
 
 ##### 部署架构
 
-![cc737ff7270d834dd8ca3e6efcc4509b.png](./images)
+![cc737ff7270d834dd8ca3e6efcc4509b.png](./images/cc737ff7270d834dd8ca3e6efcc4509b.png)
 
 轻量化
 
@@ -36,7 +36,7 @@ k3s是微型的kubernetes发行版本
 
 ##### k3s 代码结构
 
-![d7fece440f1c3f7c3a4333c3c924ebfd.png](./images)
+![d7fece440f1c3f7c3a4333c3c924ebfd.png](./images/d7fece440f1c3f7c3a4333c3c924ebfd.png)
 
 注意事项：
 
@@ -67,11 +67,11 @@ ps -T $pid
 
 #### k3s的高可用架构
 
-![efddb62fd824b694d539d686cbdf5cbd.png](./images)
+![efddb62fd824b694d539d686cbdf5cbd.png](./images/efddb62fd824b694d539d686cbdf5cbd.png)
 
-![01a39ea3b8684c5889e69a1c625e8a95.png](./images)
+![01a39ea3b8684c5889e69a1c625e8a95.png](./images/01a39ea3b8684c5889e69a1c625e8a95.png)
 
-![983420ce2dbc3d812c68639fae050dee.png](./images)
+![983420ce2dbc3d812c68639fae050dee.png](./images/983420ce2dbc3d812c68639fae050dee.png)
 
 ##### 高可用 - 外置数据库
 
@@ -82,7 +82,7 @@ ps -T $pid
 实现方式：
 rancher/kine
 
-![fb719eff62e7da623289c06cf66e9f2e.png](./images)
+![fb719eff62e7da623289c06cf66e9f2e.png](./images/fb719eff62e7da623289c06cf66e9f2e.png)
 
 
 ##### 高可用 - 分布数据库
@@ -118,7 +118,7 @@ Dqlite 原理
 - client 把请求都发送到主 server
 - 主server通过C-Raft给从server发送差分日志作为数据同步
 
-![e8387ec04f8c4c9843d12e1c2c5659fb.png](./images)
+![e8387ec04f8c4c9843d12e1c2c5659fb.png](./images/e8387ec04f8c4c9843d12e1c2c5659fb.png)
 
 
 ##### 参考链接
@@ -143,15 +143,15 @@ Docker的历史
 - dockerd = docker engine + containerd + containerd-shim + runC
 
 
-![a558aca87f7a8679d9fe1a2da820ec21.png](./images)
+![a558aca87f7a8679d9fe1a2da820ec21.png](./images/a558aca87f7a8679d9fe1a2da820ec21.png)
 
-![5471d6d59bbe3ba83a514e23af38dcef.png](./images)
+![5471d6d59bbe3ba83a514e23af38dcef.png](./images/5471d6d59bbe3ba83a514e23af38dcef.png)
 
-![1c7a968cb544086aaaa167819a26a1b0.png](./images)
+![1c7a968cb544086aaaa167819a26a1b0.png](./images/1c7a968cb544086aaaa167819a26a1b0.png)
 
-![33bede9601ebd8546cd7de980cc55135.png](./images)
+![33bede9601ebd8546cd7de980cc55135.png](./images/33bede9601ebd8546cd7de980cc55135.png)
 
-![1cc7615d71efe2799e6bbcd38bb3d718.png](./images)
+![1cc7615d71efe2799e6bbcd38bb3d718.png](./images/1cc7615d71efe2799e6bbcd38bb3d718.png)
 
 
 
@@ -308,7 +308,7 @@ Service LB是Rancher针对k3s集群而设计的一种service loadbalancer contro
 
 #### Kuberntes正成为机器学习的主流基础设施平台
 
-![6d49f668d0984291ed581b816a9bf39a.png](./images)
+![6d49f668d0984291ed581b816a9bf39a.png](./images/6d49f668d0984291ed581b816a9bf39a.png)
 
 
 k3s的优势
@@ -319,7 +319,7 @@ k3s的优势
 
 #### Docker容器中的GPU
 
-![63f55898dd5d0aef168da6dababbec7a.png](./images)
+![63f55898dd5d0aef168da6dababbec7a.png](./images/63f55898dd5d0aef168da6dababbec7a.png)
 
 
 
@@ -388,24 +388,24 @@ resources:
 
 #### k3s云边协作模式
 
-![a4bdfa2ed0fbef25adc5c819ddf132d8.png](./images)
+![a4bdfa2ed0fbef25adc5c819ddf132d8.png](./images/a4bdfa2ed0fbef25adc5c819ddf132d8.png)
 
-![25851741f97501c67fef0e0a3c9551b0.png](./images)
+![25851741f97501c67fef0e0a3c9551b0.png](./images/25851741f97501c67fef0e0a3c9551b0.png)
 
 
 #### k3s案例
 
-![c219a97aa1e92f765e8c8c1662362845.png](./images)
+![c219a97aa1e92f765e8c8c1662362845.png](./images/c219a97aa1e92f765e8c8c1662362845.png)
 
-![db52d9567d5d3b9cbf97f98c24c4a0cf.png](./images)
+![db52d9567d5d3b9cbf97f98c24c4a0cf.png](./images/db52d9567d5d3b9cbf97f98c24c4a0cf.png)
 
 
 #### K3s与IoT设备管理
 
 
-![638a2d821645ae0ccd4071ad63da136c.png](./images)
+![638a2d821645ae0ccd4071ad63da136c.png](./images/638a2d821645ae0ccd4071ad63da136c.png)
 
-![924c981a90322fe42990d2e538e46aa9.png](./images)
+![924c981a90322fe42990d2e538e46aa9.png](./images/924c981a90322fe42990d2e538e46aa9.png)
 
 
 1. 创建并纳管边缘k3s集群
@@ -449,7 +449,7 @@ K3d带来的好处
 
 Immutable Infrastructure
 
-![2229583e9c091f989762212a1eab143a.png](./images)
+![2229583e9c091f989762212a1eab143a.png](./images/2229583e9c091f989762212a1eab143a.png)
 
 
 ##### VM实现了早期的构想
@@ -467,7 +467,7 @@ Immutable Infrastructure
 - 更好的自动化
 - 更容易进行大规模运维
 
-![6bdd28c497110a72bd3c98e694c0df9d.png](./images)
+![6bdd28c497110a72bd3c98e694c0df9d.png](./images/6bdd28c497110a72bd3c98e694c0df9d.png)
 
 
 ##### 不可变基础设施2.0 -- Immutable OS
@@ -478,7 +478,7 @@ Immutable Infrastructure
 
 操作系统也应成为不可变基础设施的一部分，保证基础架构更高的一致性和可靠性，以及更加方便运维管理。
 
-![6fa8948e140aa39a937f4a508db479c4.png](./images)
+![6fa8948e140aa39a937f4a508db479c4.png](./images/6fa8948e140aa39a937f4a508db479c4.png)
 
 
 ##### Docker native正在向Kubernetes native演变
@@ -499,7 +499,7 @@ Immutable OS for Kubernetes:
 
 ##### K3os – An Immutable OS For App
 
-![0c5994ce907a7689185ec96b8b6d2f10.png](./images)
+![0c5994ce907a7689185ec96b8b6d2f10.png](./images/0c5994ce907a7689185ec96b8b6d2f10.png)
 
 ###### system-upgrade-controller
 
