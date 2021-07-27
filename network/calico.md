@@ -451,6 +451,8 @@ Calico后端使用BIRD通过BGP方式广播路由，这大大方便了我们利�
 
 注：为了减少bgppeer个数，采用RR模式组网
 
+https://docs.projectcalico.org/archive/v3.19/networking/bgp
+
 步骤如下：
 
 #### 1：安装和配置calicoctl
@@ -489,7 +491,7 @@ hostPID: true
 
 运行calicoctl node status即可查看bgppeer
 
-#### 2：配置BGP
+#### 2：配置BGP(在k8s节点中选择一个/部分作为路由反射器)
 
 1. 1）关闭全互联
 
@@ -503,7 +505,7 @@ metadata:
 spec:
   logSeverityScreen: Info
   nodeToNodeMeshEnabled: false
-  asNumber: 64512
+  asNumber: 64512	#calico网络的AS号
 ```
 
 1. 2）设置reflector节点
@@ -552,7 +554,8 @@ metadata:
 spec:
   nodeSelector: has(route-reflector)
   peerIP: 202.173.9.76    #路由器的IP
-  asNumber: 64512
+  asNumber: 64512	  #路由器的AS号（一般与calico的AS一致，组成iBGP）
+  
 ```
 
 1. 5）路由器配置
@@ -560,3 +563,31 @@ spec:
 AS：64512
 Neighbor： 202.173.9.79
 ```
+
+注：如果使用全局反射器，上面的2、3、4不用执行，换成执行下面的配置即可
+```
+apiVersion: projectcalico.org/v3
+kind: BGPPeer
+metadata:
+  name: bgppeer-global
+spec:
+  peerIP: 202.173.10.127	#路由器的IP
+  asNumber: 64512		#路由器的AS号（一般与calico的AS一致，组成iBGP）
+```
+
+路由器配置路由反射
+```
+router bgp 64512
+ neighbor 202.173.10.141 remote-as 64512	#k8s节点1的IP
+ neighbor 202.173.10.142 remote-as 64512	#k8s节点2的IP
+ neighbor 202.173.10.143 remote-as 64512	#k8s节点3的IP
+ neighbor 202.173.10.144 remote-as 64512	#k8s节点4的IP
+ !
+ address-family ipv4 unicast
+  neighbor 202.173.10.141 route-reflector-client
+  neighbor 202.173.10.142 route-reflector-client
+  neighbor 202.173.10.143 route-reflector-client
+  neighbor 202.173.10.144 route-reflector-client
+ exit-address-family
+```
+
